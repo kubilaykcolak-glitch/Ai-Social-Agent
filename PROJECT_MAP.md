@@ -64,8 +64,11 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 - `types.ts` — `Scene`, `WordTiming`, `TtsResult`, `VisualResult`, `TimedScene`, `RenderSpec`, `VideoAsset`, `AspectRatio`, `VisualKind`; interfaces `TtsProvider`, `VisualProvider`, `Renderer`, `VideoGenerator`
 - `scenes.ts` — `planScenes(script)` deterministic script→scenes splitter (+ visualQuery keywords)
 - `stub-providers.ts` — `StubTtsProvider`, `StubVisualProvider(kind)`, `StubRenderer`, `tokenize()` (no keys/ffmpeg; placeholder files)
+- `elevenlabs-tts.ts` — `ElevenLabsTtsProvider` (real TTS w/ timestamps, injectable http), `charsToWords()`
+- `pexels-visual.ts` — `PexelsVisualProvider` (real stock images, injectable http+download)
+- `ffmpeg-renderer.ts` — `FfmpegRenderer` (real render, injectable runner) + pure `buildSrt`, `buildConcatList`, `buildFfmpegArgs`, `dimsFor`
 - `generator.ts` — `DefaultVideoGenerator` (planScenes→tts→visuals→time scenes→render 9:16+16:9→`VideoAsset`)
-- `factory.ts` — `createStubVideoGenerator(visualKind)`
+- `factory.ts` — `createVideoGenerator(config)` (real-vs-stub per keys/renderer), `createStubVideoGenerator(visualKind)`
 - `index.ts` — re-export
 
 ### apps/orchestrator/src

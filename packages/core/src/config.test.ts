@@ -12,6 +12,10 @@ describe("loadConfig", () => {
     expect(cfg.topicApprovalThreshold).toBe(60);
     expect(cfg.reviewScoreThreshold).toBe(70);
     expect(cfg.visualSource).toBe("stock");
+    expect(cfg.videoRenderer).toBe("ffmpeg");
+    expect(cfg.pexelsApiKey).toBe("");
+    expect(cfg.elevenLabsApiKey).toBe("");
+    expect(cfg.elevenLabsVoiceId).toBeTruthy();
   });
 
   it("honors env overrides", () => {

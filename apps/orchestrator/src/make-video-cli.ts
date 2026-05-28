@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { loadConfig, resolveWorkspace, consoleLogger } from "@autosocial/core";
-import { createStubVideoGenerator } from "@autosocial/video";
+import { createVideoGenerator } from "@autosocial/video";
 import { runVideoGeneration } from "./make-video.js";
 
 function argValue(argv: string[], name: string): string | undefined {
@@ -22,9 +22,22 @@ async function main() {
 
   const scriptId = argValue(argv, "id") ?? `vid_${Date.now()}`;
   const layout = resolveWorkspace(cfg.workspaceDir);
-  const generator = createStubVideoGenerator(cfg.visualSource);
+  const generator = createVideoGenerator({
+    visualSource: cfg.visualSource,
+    videoRenderer: cfg.videoRenderer,
+    pexelsApiKey: cfg.pexelsApiKey,
+    elevenLabsApiKey: cfg.elevenLabsApiKey,
+    elevenLabsVoiceId: cfg.elevenLabsVoiceId,
+    elevenLabsModel: cfg.elevenLabsModel,
+  });
 
-  consoleLogger.info("generating video", { scriptId, visualSource: cfg.visualSource });
+  consoleLogger.info("generating video", {
+    scriptId,
+    visualSource: cfg.visualSource,
+    renderer: cfg.videoRenderer,
+    tts: cfg.elevenLabsApiKey ? "elevenlabs" : "stub",
+    visuals: cfg.visualSource === "stock" && cfg.pexelsApiKey ? "pexels" : "stub",
+  });
   const asset = await runVideoGeneration({
     generator,
     scriptId,

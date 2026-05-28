@@ -5,14 +5,25 @@
 
 **Last updated:** 2026-05-28
 **Repo:** https://github.com/kubilaykcolak-glitch/Ai-Social-Agent (branch `master`)
-**Status:** Phase 1 skeleton + Phase 2 trend radar + monetisation core + video module (stub-first)
-complete and green. Full `tsc --build` passes; 63 Vitest tests pass across 20 files.
+**Status:** Phase 1 skeleton + Phase 2 trend radar + monetisation core + video module
+(stub + **real providers**) complete and green. Full `tsc --build` passes; 74 Vitest tests
+pass across 24 files. **Real video rendering verified live** (h264 1080×1920 mp4 with burned
+captions, correct duration) using locally-installed ffmpeg.
 
 **Product direction (confirmed):** automate trend-driven social posts AND generate faceless
 short-form **videos** (b-roll + AI voiceover + captions) for TikTok/Reels/Shorts (9:16) and
 YouTube (16:9). Video needs external tools (TTS, stock/AI images, ffmpeg) — Anthropic does NOT
-generate video/images. The video module is built **stub-first**: full pipeline + interfaces,
-runnable/tested with no keys; real providers are the next sub-project.
+generate video/images. Providers are pluggable behind interfaces and fall back to stubs when
+keys/tools are absent, so the module runs with or without setup.
+
+**Video providers (real, wired):**
+- **TTS:** `ElevenLabsTtsProvider` (`/v1/text-to-speech/{voice}/with-timestamps`) → audio + word
+  timings for captions. Needs `ELEVENLABS_API_KEY` (+ `ELEVENLABS_VOICE_ID`).
+- **Visuals:** `PexelsVisualProvider` (stock images). Needs `PEXELS_API_KEY`. **AI image gen is
+  still a stub** (`VISUAL_SOURCE=ai` falls back to placeholder) — not yet implemented.
+- **Renderer:** `FfmpegRenderer` (local ffmpeg; scale/crop per aspect, burned SRT captions,
+  `fps=30` so stills hold their full duration). Needs ffmpeg installed.
+- Selection: `createVideoGenerator(config)` picks real per available key, else stub.
 
 **Monetisation focus:** the chosen revenue model is **ad revenue + sponsorship** (not affiliate/product).
 So most posts funnel to the ad-monetised hero content (cross-promo, UTM-tracked), and when a sponsor
@@ -54,9 +65,10 @@ publish via per-platform adapters. Wired together by a pipeline orchestrator wit
 - `@autosocial/content-generation` — `AnthropicContentGenerator`.
 - `@autosocial/review` — `AnthropicContentReviewer` (threshold-based pass/fail).
 - `@autosocial/publishing` — `DefaultPublisher` + adapters: instagram, tiktok, twitter, youtube, cms.
-- `@autosocial/video` — faceless video pipeline (stub-first): `planScenes`, interfaces
-  (`TtsProvider`, `VisualProvider`, `Renderer`, `VideoGenerator`), `DefaultVideoGenerator`,
-  stub providers, `createStubVideoGenerator(visualSource)`. Outputs `VideoAsset` (9:16 + 16:9).
+- `@autosocial/video` — faceless video pipeline: `planScenes`, interfaces (`TtsProvider`,
+  `VisualProvider`, `Renderer`, `VideoGenerator`), `DefaultVideoGenerator`, stub providers,
+  **real** providers (`ElevenLabsTtsProvider`, `PexelsVisualProvider`, `FfmpegRenderer`),
+  `createVideoGenerator(config)` / `createStubVideoGenerator()`. Outputs `VideoAsset` (9:16 + 16:9).
 - `@autosocial/orchestrator` — `runPipeline()` (regenerate-once-on-low-score, **applies monetisation
   before review/publish** when a plan is present) + `cli` (loads the plan from the workspace),
   `score-topics` (Cowork Automation 1 entrypoint), and `make-video` (script → `videos/<id>/`).
@@ -75,9 +87,15 @@ node apps/orchestrator/dist/score-topics-cli.js --limit=10
 # Full content pipeline
 node apps/orchestrator/dist/cli.js --platforms=instagram,tiktok
 
-# Make a video from a script (stub providers -> placeholder media in workspace/videos/<id>/)
+# Make a video from a script -> workspace/videos/<id>/ (9:16 + 16:9 mp4 + asset.json)
+# Real output needs: ffmpeg installed + PEXELS_API_KEY + ELEVENLABS_API_KEY in .env.
+# Without keys it falls back to stub providers (placeholder files).
 node apps/orchestrator/dist/make-video-cli.js --id=demo --script="..."
 ```
+
+**ffmpeg note:** installed on this machine via `winget install Gyan.FFmpeg`. It's on PATH for new
+shells; the binary is under `%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_*\ffmpeg-*\bin`.
+`FfmpegRenderer` accepts an `ffmpegPath` option if it's not on PATH.
 With `LLM_CLIENT=api` and no `ANTHROPIC_API_KEY`, the LLM factory throws a clear error (expected).
 
 ## Cowork automations (configured in Cowork, NOT repo code)
@@ -94,15 +112,17 @@ The repo provides the callable agent-side pieces; Cowork wires the folder trigge
 2. **Platform publishing** — every adapter's `publish()` has a `// TODO` for the real API call
    (Instagram Graph, TikTok Content Posting, X API v2, YouTube Data API, CMS REST). Mock results for now.
    No media upload yet.
-3. **Video media is fake** — `Stub` TTS/visual/renderer write placeholder files (no real audio,
-   images, or mp4). Real providers (TTS, stock/AI images, ffmpeg) are the next sub-project.
+3. **Real video works with keys + ffmpeg** (ElevenLabs TTS, Pexels stock, ffmpeg render). Still
+   missing: **AI image generation** (`VISUAL_SOURCE=ai` is a stub), and `VideoAsset` is not yet
+   attached to `Draft` or uploaded by the publishing adapters.
 4. No `.env` autoloading, scheduling/async loop, persistence, or web UI yet.
 
 ## Suggested next steps (pick up here)
 
-**Video roadmap (current priority):** skeleton ✅ → wire **real providers** (`ElevenLabsTts`/`OpenAiTts`,
-`PexelsVisual` + `ReplicateAiVisual`, `FfmpegRenderer` — needs ffmpeg + API keys) → attach `VideoAsset`
-to `Draft` and into publishing (media upload). Then **real trend ingestion** (Google Trends/X/TikTok).
+**Video roadmap:** skeleton ✅ → real providers (ElevenLabs TTS, Pexels stock, ffmpeg) ✅ →
+**next:** AI image provider (`VISUAL_SOURCE=ai`), attach `VideoAsset` to `Draft` + publishing
+media upload, optional captions polish (styling/positioning). Then **real trend ingestion**
+(Google Trends/X/TikTok).
 
 Monetisation roadmap: **(A) monetisation core ✅ done** → **(B) attribution loop** → **(C) revenue-weighted scoring**.
 - **B — Attribution loop:** record `offerId/campaignId` + tracked URL per post in the publishing log
