@@ -6,10 +6,18 @@ import type {
   PublishResult,
   ValidationResult,
   PlatformName,
+  RawTopic,
+  ScoredTopic,
 } from "./types.js";
 
 export interface TrendDetector {
   detect(limit: number): Promise<Trend[]>;
+}
+
+export interface TrendScorer {
+  // Ranks raw topics by viral potential + relevance.
+  // Returns up to `limit` topics sorted by finalScore desc, each flagged approved/not.
+  score(topics: RawTopic[], limit: number): Promise<ScoredTopic[]>;
 }
 
 export interface ContentGenerator {

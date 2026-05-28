@@ -49,3 +49,49 @@ export interface PublishResult {
   url?: string;
   error?: string;
 }
+
+// --- Trend radar / filesystem contract ---
+
+// A raw topic candidate as it lands in inbox/topics/*.json (pre-scoring).
+export interface RawTopic {
+  topic: string;
+  source?: string;
+  keywords?: string[];
+  notes?: string;
+}
+
+// A topic after the scorer has ranked it. `finalScore` drives ordering.
+export interface ScoredTopic extends Trend {
+  viralScore: number; // 0..100
+  relevanceScore: number; // 0..100
+  finalScore: number; // 0..100, used as Trend.score too
+  rationale: string;
+  approved: boolean;
+}
+
+// Contents of queue/approved-topics.json
+export interface ApprovedTopicsFile {
+  generatedAt: string; // ISO timestamp
+  topics: ScoredTopic[];
+}
+
+// A content draft written to drafts/<id>.json and moved through staging.
+export interface Draft {
+  id: string;
+  topic: string;
+  platforms: PlatformName[];
+  content: GeneratedContent;
+  createdAt: string; // ISO timestamp
+}
+
+// One row appended to logs/publishing-log.csv
+export interface PublishingLogRow {
+  timestamp: string; // ISO
+  topicId: string;
+  topic: string;
+  platform: PlatformName;
+  status: "published" | "failed";
+  postId: string;
+  url: string;
+  error: string;
+}

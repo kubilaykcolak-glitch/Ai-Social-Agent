@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "type": "module",
   "main": "dist/cli.js",
-  "bin": { "autosocial": "dist/cli.js" },
+  "bin": {
+    "autosocial": "dist/cli.js",
+    "autosocial-score-topics": "dist/score-topics-cli.js"
+  },
   "dependencies": {
     "@autosocial/core": "0.1.0",
     "@autosocial/trend-detection": "0.1.0",

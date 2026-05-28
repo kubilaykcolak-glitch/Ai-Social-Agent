@@ -4,3 +4,7 @@ export * from "./errors.js";
 export * from "./logger.js";
 export * from "./config.js";
 export * from "./anthropic-client.js";
+export * from "./claude-code-client.js";
+export * from "./llm.js";
+export * from "./workspace.js";
+export * from "./fs-store.js";

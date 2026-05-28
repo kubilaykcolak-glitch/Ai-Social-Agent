@@ -15,7 +15,7 @@ export class SdkAnthropicClient implements AnthropicClient {
   }
 
   async complete(system: string, user: string): Promise<string> {
-    const res = await this.client.beta.promptCaching.messages.create({
+    const res = await this.client.messages.create({
       model: this.model,
       max_tokens: this.maxTokens,
       system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
