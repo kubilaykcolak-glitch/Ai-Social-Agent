@@ -6,7 +6,8 @@
     { "path": "../../packages/trend-detection" },
     { "path": "../../packages/content-generation" },
     { "path": "../../packages/review" },
-    { "path": "../../packages/publishing" }
+    { "path": "../../packages/publishing" },
+    { "path": "../../packages/video" }
   ],
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"]

@@ -18,7 +18,8 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 | `@autosocial/content-generation` | `packages/content-generation` | Generate platform content via Anthropic |
 | `@autosocial/review` | `packages/review` | AI self-critique review/scoring |
 | `@autosocial/publishing` | `packages/publishing` | Publisher + 6 platform adapters |
-| `@autosocial/orchestrator` | `apps/orchestrator` | Pipeline + CLI entrypoint |
+| `@autosocial/video` | `packages/video` | Faceless video pipeline (stub-first) |
+| `@autosocial/orchestrator` | `apps/orchestrator` | Pipeline + CLIs (content, score-topics, make-video) |
 
 ## File index
 
@@ -59,11 +60,21 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 - `adapters/cms.ts` — `CmsAdapter` (non-empty body; ctor takes REST `endpoint`)
 - `index.ts` — re-export publisher + all adapters
 
+### packages/video/src
+- `types.ts` — `Scene`, `WordTiming`, `TtsResult`, `VisualResult`, `TimedScene`, `RenderSpec`, `VideoAsset`, `AspectRatio`, `VisualKind`; interfaces `TtsProvider`, `VisualProvider`, `Renderer`, `VideoGenerator`
+- `scenes.ts` — `planScenes(script)` deterministic script→scenes splitter (+ visualQuery keywords)
+- `stub-providers.ts` — `StubTtsProvider`, `StubVisualProvider(kind)`, `StubRenderer`, `tokenize()` (no keys/ffmpeg; placeholder files)
+- `generator.ts` — `DefaultVideoGenerator` (planScenes→tts→visuals→time scenes→render 9:16+16:9→`VideoAsset`)
+- `factory.ts` — `createStubVideoGenerator(visualKind)`
+- `index.ts` — re-export
+
 ### apps/orchestrator/src
 - `pipeline.ts` — `runPipeline(cfg)`, types `PipelineConfig` / `PipelineOutput`; sequences detect→generate→(monetise)→review→publish with regenerate-once-on-low-score. `cfg.monetization?` applies CTAs before review/publish
 - `cli.ts` — content-pipeline CLI entrypoint; `parsePlatforms(argv)`, builds real deps, runs pipeline, prints results
 - `score-topics.ts` — `runTopicScoring(deps)`: inbox → scorer → `writeApprovedTopics`; types `TopicScoringDeps`/`TopicScoringSummary`
 - `score-topics-cli.ts` — CLI for Cowork Automation 1 (`autosocial-score-topics`); wires config/llm/workspace/scorer
+- `make-video.ts` — `runVideoGeneration(deps)`: script → `videos/<scriptId>/` + asset.json
+- `make-video-cli.ts` — CLI (`autosocial-make-video`); builds stub generator from `config.visualSource`
 
 ## Where to make common changes
 

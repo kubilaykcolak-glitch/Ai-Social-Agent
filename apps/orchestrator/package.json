@@ -5,13 +5,15 @@
   "main": "dist/cli.js",
   "bin": {
     "autosocial": "dist/cli.js",
-    "autosocial-score-topics": "dist/score-topics-cli.js"
+    "autosocial-score-topics": "dist/score-topics-cli.js",
+    "autosocial-make-video": "dist/make-video-cli.js"
   },
   "dependencies": {
     "@autosocial/core": "0.1.0",
     "@autosocial/trend-detection": "0.1.0",
     "@autosocial/content-generation": "0.1.0",
     "@autosocial/review": "0.1.0",
-    "@autosocial/publishing": "0.1.0"
+    "@autosocial/publishing": "0.1.0",
+    "@autosocial/video": "0.1.0"
   }
 }

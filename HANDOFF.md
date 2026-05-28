@@ -5,8 +5,14 @@
 
 **Last updated:** 2026-05-28
 **Repo:** https://github.com/kubilaykcolak-glitch/Ai-Social-Agent (branch `master`)
-**Status:** Phase 1 skeleton + Phase 2 trend radar + monetisation core (ad/sponsorship model)
-complete and green. Full `tsc --build` passes; 55 Vitest tests pass across 17 files.
+**Status:** Phase 1 skeleton + Phase 2 trend radar + monetisation core + video module (stub-first)
+complete and green. Full `tsc --build` passes; 63 Vitest tests pass across 20 files.
+
+**Product direction (confirmed):** automate trend-driven social posts AND generate faceless
+short-form **videos** (b-roll + AI voiceover + captions) for TikTok/Reels/Shorts (9:16) and
+YouTube (16:9). Video needs external tools (TTS, stock/AI images, ffmpeg) — Anthropic does NOT
+generate video/images. The video module is built **stub-first**: full pipeline + interfaces,
+runnable/tested with no keys; real providers are the next sub-project.
 
 **Monetisation focus:** the chosen revenue model is **ad revenue + sponsorship** (not affiliate/product).
 So most posts funnel to the ad-monetised hero content (cross-promo, UTM-tracked), and when a sponsor
@@ -48,9 +54,12 @@ publish via per-platform adapters. Wired together by a pipeline orchestrator wit
 - `@autosocial/content-generation` — `AnthropicContentGenerator`.
 - `@autosocial/review` — `AnthropicContentReviewer` (threshold-based pass/fail).
 - `@autosocial/publishing` — `DefaultPublisher` + adapters: instagram, tiktok, twitter, youtube, cms.
+- `@autosocial/video` — faceless video pipeline (stub-first): `planScenes`, interfaces
+  (`TtsProvider`, `VisualProvider`, `Renderer`, `VideoGenerator`), `DefaultVideoGenerator`,
+  stub providers, `createStubVideoGenerator(visualSource)`. Outputs `VideoAsset` (9:16 + 16:9).
 - `@autosocial/orchestrator` — `runPipeline()` (regenerate-once-on-low-score, **applies monetisation
   before review/publish** when a plan is present) + `cli` (loads the plan from the workspace),
-  plus `score-topics` (Cowork Automation 1 entrypoint: inbox → score → approved-topics queue).
+  `score-topics` (Cowork Automation 1 entrypoint), and `make-video` (script → `videos/<id>/`).
 
 ## How to run
 
@@ -65,6 +74,9 @@ node apps/orchestrator/dist/score-topics-cli.js --limit=10
 
 # Full content pipeline
 node apps/orchestrator/dist/cli.js --platforms=instagram,tiktok
+
+# Make a video from a script (stub providers -> placeholder media in workspace/videos/<id>/)
+node apps/orchestrator/dist/make-video-cli.js --id=demo --script="..."
 ```
 With `LLM_CLIENT=api` and no `ANTHROPIC_API_KEY`, the LLM factory throws a clear error (expected).
 
@@ -81,9 +93,16 @@ The repo provides the callable agent-side pieces; Cowork wires the folder trigge
    but real *ingestion* (Google Trends, X API, RSS) into `inbox/topics/` is not wired.
 2. **Platform publishing** — every adapter's `publish()` has a `// TODO` for the real API call
    (Instagram Graph, TikTok Content Posting, X API v2, YouTube Data API, CMS REST). Mock results for now.
-3. No `.env` autoloading, scheduling/async loop, persistence, web UI, or media generation yet.
+   No media upload yet.
+3. **Video media is fake** — `Stub` TTS/visual/renderer write placeholder files (no real audio,
+   images, or mp4). Real providers (TTS, stock/AI images, ffmpeg) are the next sub-project.
+4. No `.env` autoloading, scheduling/async loop, persistence, or web UI yet.
 
 ## Suggested next steps (pick up here)
+
+**Video roadmap (current priority):** skeleton ✅ → wire **real providers** (`ElevenLabsTts`/`OpenAiTts`,
+`PexelsVisual` + `ReplicateAiVisual`, `FfmpegRenderer` — needs ffmpeg + API keys) → attach `VideoAsset`
+to `Draft` and into publishing (media upload). Then **real trend ingestion** (Google Trends/X/TikTok).
 
 Monetisation roadmap: **(A) monetisation core ✅ done** → **(B) attribution loop** → **(C) revenue-weighted scoring**.
 - **B — Attribution loop:** record `offerId/campaignId` + tracked URL per post in the publishing log

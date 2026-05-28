@@ -14,5 +14,6 @@ describe("resolveWorkspace", () => {
     expect(ws.needsRevisionDir).toBe(join(base, "needs-revision"));
     expect(ws.publishingLogCsv).toBe(join(base, "logs", "publishing-log.csv"));
     expect(ws.monetizationFile).toBe(join(base, "monetization.json"));
+    expect(ws.videosDir).toBe(join(base, "videos"));
   });
 });

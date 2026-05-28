@@ -6,6 +6,7 @@
     { "path": "packages/content-generation" },
     { "path": "packages/review" },
     { "path": "packages/publishing" },
+    { "path": "packages/video" },
     { "path": "apps/orchestrator" }
   ]
 }

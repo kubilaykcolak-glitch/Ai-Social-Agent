@@ -11,6 +11,7 @@ describe("loadConfig", () => {
     expect(cfg.workspaceDir).toBe("./workspace");
     expect(cfg.topicApprovalThreshold).toBe(60);
     expect(cfg.reviewScoreThreshold).toBe(70);
+    expect(cfg.visualSource).toBe("stock");
   });
 
   it("honors env overrides", () => {
@@ -18,10 +19,12 @@ describe("loadConfig", () => {
       LLM_CLIENT: "api",
       WORKSPACE_DIR: "/data/ws",
       TOPIC_SCORE_THRESHOLD: "75",
+      VISUAL_SOURCE: "ai",
     });
     expect(cfg.llmClient).toBe("api");
     expect(cfg.workspaceDir).toBe("/data/ws");
     expect(cfg.topicApprovalThreshold).toBe(75);
+    expect(cfg.visualSource).toBe("ai");
   });
 });
 

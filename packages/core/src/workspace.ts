@@ -11,6 +11,7 @@ export interface WorkspaceLayout {
   needsRevisionDir: string; // needs-revision/
   publishingLogCsv: string; // logs/publishing-log.csv
   monetizationFile: string; // monetization.json
+  videosDir: string; // videos/  (output: videos/<scriptId>/)
 }
 
 export function resolveWorkspace(root: string): WorkspaceLayout {
@@ -24,5 +25,6 @@ export function resolveWorkspace(root: string): WorkspaceLayout {
     needsRevisionDir: join(base, "needs-revision"),
     publishingLogCsv: join(base, "logs", "publishing-log.csv"),
     monetizationFile: join(base, "monetization.json"),
+    videosDir: join(base, "videos"),
   };
 }
