@@ -1,12 +1,14 @@
-import type {
-  ContentGenerator,
-  ContentReviewer,
-  GeneratedContent,
-  PlatformName,
-  Publisher,
-  PublishResult,
-  ReviewResult,
-  TrendDetector,
+import {
+  applyMonetization,
+  type ContentGenerator,
+  type ContentReviewer,
+  type GeneratedContent,
+  type MonetizationPlan,
+  type PlatformName,
+  type Publisher,
+  type PublishResult,
+  type ReviewResult,
+  type TrendDetector,
 } from "@autosocial/core";
 
 export interface PipelineConfig {
@@ -16,6 +18,9 @@ export interface PipelineConfig {
   generator: ContentGenerator;
   reviewer: ContentReviewer;
   publisher: Publisher;
+  // Optional: when provided, every generated post gets a monetisation CTA +
+  // tracked link appended before review/publish.
+  monetization?: MonetizationPlan;
 }
 
 export interface PipelineOutput {
@@ -30,14 +35,22 @@ export async function runPipeline(cfg: PipelineConfig): Promise<PipelineOutput> 
   if (!trend) throw new Error("no trends detected");
 
   const brief = { trend, platforms: cfg.platforms };
+  const now = new Date();
 
-  let content = await cfg.generator.generate(brief);
+  const generateMonetised = async (): Promise<GeneratedContent> => {
+    const generated = await cfg.generator.generate(brief);
+    if (!cfg.monetization) return generated;
+    const postId = `${trend.id}_${now.getTime()}`;
+    return applyMonetization(generated, cfg.monetization, { now, postId });
+  };
+
+  let content = await generateMonetised();
   let review = await cfg.reviewer.review(content, cfg.threshold);
   let regenerated = false;
 
   if (!review.passed) {
     regenerated = true;
-    content = await cfg.generator.generate(brief);
+    content = await generateMonetised();
     review = await cfg.reviewer.review(content, cfg.threshold);
   }
 

@@ -95,3 +95,51 @@ export interface PublishingLogRow {
   url: string;
   error: string;
 }
+
+// --- Monetisation (ad revenue + sponsorship model) ---
+
+// How a sponsor pays: a flat fee per post, or CPM (per 1000 views).
+export interface Payout {
+  type: "flat" | "cpm";
+  amount: number;
+}
+
+// A sponsor campaign with a flight window. While active and matching, its slot
+// (talking point + CTA + disclosure + tracked link) is injected into posts.
+export interface SponsorCampaign {
+  id: string;
+  sponsor: string;
+  status: "active" | "paused" | "ended";
+  start: string; // ISO date (inclusive)
+  end: string; // ISO date (inclusive)
+  platforms: PlatformName[];
+  keywords: string[]; // empty = matches any topic
+  talkingPoint: string;
+  cta: string;
+  url: string; // sponsor destination (UTM params added per post)
+  disclosure: string; // e.g. "#ad"
+  payout: Payout;
+}
+
+// The ad-monetised "hero" content other platforms point traffic to.
+export interface CrossPromoTarget {
+  name: string;
+  url: string; // hero destination (UTM params added per post)
+  defaultCta?: string;
+  ctaByPlatform?: Partial<Record<PlatformName, string>>;
+}
+
+// Contents of workspace/monetization.json
+export interface MonetizationPlan {
+  crossPromo?: CrossPromoTarget;
+  sponsors: SponsorCampaign[];
+}
+
+// What to inject into a single platform's post.
+export interface MonetizationDirective {
+  kind: "sponsor" | "crosspromo";
+  campaignId?: string; // set when kind === "sponsor"
+  cta: string;
+  url: string; // already UTM-tagged
+  disclosure?: string; // set for sponsored posts
+}

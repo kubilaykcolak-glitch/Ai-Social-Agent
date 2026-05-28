@@ -1,6 +1,8 @@
 import {
   loadConfig,
-  SdkAnthropicClient,
+  createLlmClient,
+  resolveWorkspace,
+  readMonetizationPlan,
   consoleLogger,
   type PlatformName,
 } from "@autosocial/core";
@@ -18,15 +20,12 @@ function parsePlatforms(argv: string[]): PlatformName[] {
 
 async function main() {
   const cfg = loadConfig();
-  if (!cfg.anthropicApiKey) {
-    consoleLogger.error("ANTHROPIC_API_KEY not set. Copy .env.example to .env.");
-    process.exit(1);
-  }
-
-  const client = new SdkAnthropicClient(cfg.anthropicApiKey, cfg.anthropicModel);
+  const client = createLlmClient(cfg);
   const platforms = parsePlatforms(process.argv.slice(2));
+  const layout = resolveWorkspace(cfg.workspaceDir);
+  const monetization = await readMonetizationPlan(layout);
 
-  consoleLogger.info("running pipeline", { platforms });
+  consoleLogger.info("running pipeline", { platforms, client: cfg.llmClient });
   const out = await runPipeline({
     platforms,
     threshold: cfg.reviewScoreThreshold,
@@ -34,6 +33,7 @@ async function main() {
     generator: new AnthropicContentGenerator(client),
     reviewer: new AnthropicContentReviewer(client),
     publisher: new DefaultPublisher(),
+    monetization,
   });
 
   consoleLogger.info(`trend: ${out.content.brief.trend.topic}`);

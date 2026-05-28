@@ -1,0 +1,29 @@
+{
+  "crossPromo": {
+    "name": "My YouTube channel",
+    "url": "https://youtube.com/@yourchannel",
+    "defaultCta": "Watch the full video on YouTube",
+    "ctaByPlatform": {
+      "instagram": "Full video on YouTube — link in bio",
+      "tiktok": "Full video on YouTube — link in bio",
+      "twitter": "Full breakdown here",
+      "cms": "Watch the companion video"
+    }
+  },
+  "sponsors": [
+    {
+      "id": "acme-q2-2026",
+      "sponsor": "Acme",
+      "status": "active",
+      "start": "2026-05-01",
+      "end": "2026-06-30",
+      "platforms": ["instagram", "tiktok", "twitter", "youtube"],
+      "keywords": ["ai", "productivity", "automation"],
+      "talkingPoint": "Acme automates the busywork so you can focus on the creative part.",
+      "cta": "Try Acme free",
+      "url": "https://acme.com/offer",
+      "disclosure": "#ad",
+      "payout": { "type": "flat", "amount": 500 }
+    }
+  ]
+}

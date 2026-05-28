@@ -31,8 +31,10 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 - `anthropic-client.ts` — `AnthropicClient` interface, `SdkAnthropicClient` (metered API key; GA `messages.create` + `cache_control`)
 - `claude-code-client.ts` — `ClaudeCodeClient` (local Claude subscription via Agent SDK `query()`, no API key)
 - `llm.ts` — `createLlmClient(config)` factory (default `claude-code`, fallback `api`)
-- `workspace.ts` — `WorkspaceLayout`, `resolveWorkspace(root)` (inbox/queue/drafts/staging/log paths)
-- `fs-store.ts` — `readInboxTopics`, `writeApprovedTopics`, `writeDraft`, `moveDraft`, `appendPublishingLog`
+- `workspace.ts` — `WorkspaceLayout`, `resolveWorkspace(root)` (inbox/queue/drafts/staging/log/monetization paths)
+- `fs-store.ts` — `readInboxTopics`, `writeApprovedTopics`, `writeDraft`, `moveDraft`, `appendPublishingLog`, `readMonetizationPlan`
+- `utm.ts` — `buildUtmUrl(base, {source,medium,campaign,content})` (preserves existing query)
+- `monetization.ts` — `selectMonetization(plan, opts)` (active sponsor else cross-promo; YouTube excluded from self cross-promo), `applyMonetization(content, plan, {now,postId})` (appends CTA+tracked link+disclosure per platform). Types: `SponsorCampaign`, `CrossPromoTarget`, `MonetizationPlan`, `MonetizationDirective`, `Payout`
 - `index.ts` — barrel re-export of all of the above
 
 ### packages/trend-detection/src
@@ -58,7 +60,7 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 - `index.ts` — re-export publisher + all adapters
 
 ### apps/orchestrator/src
-- `pipeline.ts` — `runPipeline(cfg)`, types `PipelineConfig` / `PipelineOutput`; sequences detect→generate→review→publish with regenerate-once-on-low-score
+- `pipeline.ts` — `runPipeline(cfg)`, types `PipelineConfig` / `PipelineOutput`; sequences detect→generate→(monetise)→review→publish with regenerate-once-on-low-score. `cfg.monetization?` applies CTAs before review/publish
 - `cli.ts` — content-pipeline CLI entrypoint; `parsePlatforms(argv)`, builds real deps, runs pipeline, prints results
 - `score-topics.ts` — `runTopicScoring(deps)`: inbox → scorer → `writeApprovedTopics`; types `TopicScoringDeps`/`TopicScoringSummary`
 - `score-topics-cli.ts` — CLI for Cowork Automation 1 (`autosocial-score-topics`); wires config/llm/workspace/scorer

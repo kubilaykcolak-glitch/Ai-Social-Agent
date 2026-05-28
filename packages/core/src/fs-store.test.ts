@@ -10,6 +10,7 @@ import {
   writeDraft,
   moveDraft,
   appendPublishingLog,
+  readMonetizationPlan,
 } from "./fs-store.js";
 import type { Draft, PublishingLogRow, ScoredTopic } from "./types.js";
 
@@ -92,6 +93,26 @@ describe("writeDraft + moveDraft", () => {
     const dest = await moveDraft(ws, "d1", "needs-revision");
     expect(dest.startsWith(ws.needsRevisionDir)).toBe(true);
     expect(existsSync(dest)).toBe(true);
+  });
+});
+
+describe("readMonetizationPlan", () => {
+  it("returns an empty plan when the file is missing", async () => {
+    expect(await readMonetizationPlan(ws)).toEqual({ sponsors: [] });
+  });
+
+  it("reads crossPromo and sponsors when present", async () => {
+    await writeFile(
+      ws.monetizationFile,
+      JSON.stringify({
+        crossPromo: { name: "YT", url: "https://youtube.com/@me" },
+        sponsors: [{ id: "s1" }],
+      }),
+      "utf8",
+    );
+    const plan = await readMonetizationPlan(ws);
+    expect(plan.crossPromo?.name).toBe("YT");
+    expect(plan.sponsors).toHaveLength(1);
   });
 });
 

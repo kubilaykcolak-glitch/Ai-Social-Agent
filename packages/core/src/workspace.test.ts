@@ -13,5 +13,6 @@ describe("resolveWorkspace", () => {
     expect(ws.readyToPublishDir).toBe(join(base, "ready-to-publish"));
     expect(ws.needsRevisionDir).toBe(join(base, "needs-revision"));
     expect(ws.publishingLogCsv).toBe(join(base, "logs", "publishing-log.csv"));
+    expect(ws.monetizationFile).toBe(join(base, "monetization.json"));
   });
 });

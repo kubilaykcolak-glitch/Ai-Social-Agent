@@ -3,6 +3,7 @@ import type {
   ContentGenerator,
   ContentReviewer,
   GeneratedContent,
+  MonetizationPlan,
   Publisher,
   TrendDetector,
 } from "@autosocial/core";
@@ -73,5 +74,45 @@ describe("runPipeline", () => {
 
     expect(out.regenerated).toBe(true);
     expect(out.review.passed).toBe(true);
+  });
+
+  it("appends a monetisation CTA + tracked link when a plan is provided", async () => {
+    const generator: ContentGenerator = { generate: async () => makeContent("engaging post") };
+    let reviewedBody = "";
+    const reviewer: ContentReviewer = {
+      review: async (c) => {
+        reviewedBody = c.perPlatform[0].body;
+        return { score: 90, issues: [], passed: true };
+      },
+    };
+    const publisher: Publisher = {
+      publish: async (c, platforms) =>
+        platforms.map((p) => ({
+          platform: p,
+          status: "published" as const,
+          id: "1",
+          url: c.perPlatform[0].body, // surface the body so we can assert on it
+        })),
+    };
+    const monetization: MonetizationPlan = {
+      crossPromo: { name: "My YouTube", url: "https://youtube.com/@me" },
+      sponsors: [],
+    };
+
+    const out = await runPipeline({
+      platforms: ["instagram"],
+      threshold: 70,
+      detector,
+      generator,
+      reviewer,
+      publisher,
+      monetization,
+    });
+
+    // cross-promo CTA + UTM-tagged link is appended and visible to review + publish
+    expect(out.content.perPlatform[0].body).toContain("engaging post");
+    expect(out.content.perPlatform[0].body).toContain("utm_source=instagram");
+    expect(out.content.perPlatform[0].body).toContain("utm_campaign=crosspromo");
+    expect(reviewedBody).toContain("utm_source=instagram");
   });
 });

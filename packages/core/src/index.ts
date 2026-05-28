@@ -8,3 +8,5 @@ export * from "./claude-code-client.js";
 export * from "./llm.js";
 export * from "./workspace.js";
 export * from "./fs-store.js";
+export * from "./utm.js";
+export * from "./monetization.js";

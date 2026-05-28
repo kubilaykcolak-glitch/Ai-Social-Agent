@@ -5,8 +5,14 @@
 
 **Last updated:** 2026-05-28
 **Repo:** https://github.com/kubilaykcolak-glitch/Ai-Social-Agent (branch `master`)
-**Status:** Phase 1 skeleton + Phase 2 trend radar (FS contract, topic scoring, local-Claude client)
-complete and green. Full `tsc --build` passes; 42 Vitest tests pass across 15 files.
+**Status:** Phase 1 skeleton + Phase 2 trend radar + monetisation core (ad/sponsorship model)
+complete and green. Full `tsc --build` passes; 55 Vitest tests pass across 17 files.
+
+**Monetisation focus:** the chosen revenue model is **ad revenue + sponsorship** (not affiliate/product).
+So most posts funnel to the ad-monetised hero content (cross-promo, UTM-tracked), and when a sponsor
+campaign is live + matching, posts carry the sponsor slot (talking point + CTA + #ad disclosure +
+tracked link). Link tracking is UTM params on the destination URLs. Every generated post gets a
+monetisation CTA appended deterministically (not left to the model).
 
 ## What this is
 
@@ -35,11 +41,15 @@ publish via per-platform adapters. Wired together by a pipeline orchestrator wit
 - `@autosocial/core` — types, interfaces, errors, logger, config, `SdkAnthropicClient`,
   `ClaudeCodeClient`, `createLlmClient`, workspace layout (`resolveWorkspace`) + `fs-store` helpers,
   FS-contract types (`RawTopic`, `ScoredTopic`, `ApprovedTopicsFile`, `Draft`, `PublishingLogRow`).
+- **Monetisation** (in core): types (`SponsorCampaign`, `CrossPromoTarget`, `MonetizationPlan`,
+  `MonetizationDirective`, `Payout`); `buildUtmUrl`; `selectMonetization` + `applyMonetization`;
+  `readMonetizationPlan` (reads `workspace/monetization.json` — see `monetization.example.json`).
 - `@autosocial/trend-detection` — `StubTrendDetector` + `AnthropicTrendScorer` (viral+relevance scoring).
 - `@autosocial/content-generation` — `AnthropicContentGenerator`.
 - `@autosocial/review` — `AnthropicContentReviewer` (threshold-based pass/fail).
 - `@autosocial/publishing` — `DefaultPublisher` + adapters: instagram, tiktok, twitter, youtube, cms.
-- `@autosocial/orchestrator` — `runPipeline()` (regenerate-once-on-low-score) + `cli`,
+- `@autosocial/orchestrator` — `runPipeline()` (regenerate-once-on-low-score, **applies monetisation
+  before review/publish** when a plan is present) + `cli` (loads the plan from the workspace),
   plus `score-topics` (Cowork Automation 1 entrypoint: inbox → score → approved-topics queue).
 
 ## How to run
@@ -75,10 +85,15 @@ The repo provides the callable agent-side pieces; Cowork wires the folder trigge
 
 ## Suggested next steps (pick up here)
 
+Monetisation roadmap: **(A) monetisation core ✅ done** → **(B) attribution loop** → **(C) revenue-weighted scoring**.
+- **B — Attribution loop:** record `offerId/campaignId` + tracked URL per post in the publishing log
+  (`appendPublishingLog` exists), and add an ingest step that pulls clicks/conversions/revenue back
+  into the workspace. This is Cowork Automation 3's real purpose.
+- **C — Revenue-weighted scoring:** add a "monetisation potential" axis to `AnthropicTrendScorer`
+  (or a wrapper) so topics matching high-value active sponsors / historically-earning offers rank up.
 - **Phase 3:** upgrade `runPipeline` into the async polling loop (6h poll, score, top-3, dispatch,
   staging writes) with retry/rate-limit/structured logging.
 - **Phase 4:** wire the first real publishing adapter end-to-end (Twitter/X is simplest).
-- Build the quality-gate CLI for Cowork Automation 2 (reads a draft, runs the reviewer, moves it).
 - Add `.env` autoloading (e.g. `dotenv`) — `loadConfig` reads `process.env` but nothing loads `.env`.
 
 ## Conventions to keep

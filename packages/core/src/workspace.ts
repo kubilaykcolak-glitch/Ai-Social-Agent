@@ -10,6 +10,7 @@ export interface WorkspaceLayout {
   readyToPublishDir: string; // ready-to-publish/
   needsRevisionDir: string; // needs-revision/
   publishingLogCsv: string; // logs/publishing-log.csv
+  monetizationFile: string; // monetization.json
 }
 
 export function resolveWorkspace(root: string): WorkspaceLayout {
@@ -22,5 +23,6 @@ export function resolveWorkspace(root: string): WorkspaceLayout {
     readyToPublishDir: join(base, "ready-to-publish"),
     needsRevisionDir: join(base, "needs-revision"),
     publishingLogCsv: join(base, "logs", "publishing-log.csv"),
+    monetizationFile: join(base, "monetization.json"),
   };
 }

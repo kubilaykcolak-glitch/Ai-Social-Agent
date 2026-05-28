@@ -4,6 +4,7 @@ import { dirname, join, basename } from "node:path";
 import type {
   ApprovedTopicsFile,
   Draft,
+  MonetizationPlan,
   PublishingLogRow,
   RawTopic,
   ScoredTopic,
@@ -27,6 +28,14 @@ export async function readInboxTopics(layout: WorkspaceLayout): Promise<RawTopic
     else all.push(parsed);
   }
   return all;
+}
+
+// Read workspace/monetization.json. Missing file -> an empty plan (no sponsors).
+export async function readMonetizationPlan(layout: WorkspaceLayout): Promise<MonetizationPlan> {
+  if (!existsSync(layout.monetizationFile)) return { sponsors: [] };
+  const raw = await readFile(layout.monetizationFile, "utf8");
+  const parsed = JSON.parse(raw) as MonetizationPlan;
+  return { crossPromo: parsed.crossPromo, sponsors: parsed.sponsors ?? [] };
 }
 
 // Write queue/approved-topics.json (creates parent dir as needed).
