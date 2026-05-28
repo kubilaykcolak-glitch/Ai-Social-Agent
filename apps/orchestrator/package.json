@@ -1,0 +1,14 @@
+{
+  "name": "@autosocial/orchestrator",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/cli.js",
+  "bin": { "autosocial": "dist/cli.js" },
+  "dependencies": {
+    "@autosocial/core": "0.1.0",
+    "@autosocial/trend-detection": "0.1.0",
+    "@autosocial/content-generation": "0.1.0",
+    "@autosocial/review": "0.1.0",
+    "@autosocial/publishing": "0.1.0"
+  }
+}
