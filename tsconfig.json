@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/trend-detection" },
+    { "path": "packages/content-generation" },
+    { "path": "packages/review" },
+    { "path": "packages/publishing" },
+    { "path": "apps/orchestrator" }
+  ]
+}
