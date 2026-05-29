@@ -1,6 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Scene, VisualProvider, VisualResult } from "./types.js";
+import { DEFAULT_TEMPLATE, buildImagePrompt } from "./prompt-templates.js";
+
+// Rewrites a scene's narration into a concise visual description (LLM-backed; injected
+// from the orchestrator which owns the LLM client). Optional — falls back to narration.
+export type SceneDescriber = (scene: Scene) => Promise<string>;
 
 // Generates one image for `prompt` and returns its URL. Injectable so the provider is
 // unit-testable without the SDK, network, or credentials.
@@ -55,7 +60,8 @@ const defaultDownload: HiggsfieldDownload = async (url) => {
 export interface HiggsfieldVisualOptions {
   credentials: string; // "apiKey:apiSecret"
   endpoint?: string; // text-to-image service id
-  style?: string; // prepended to every scene prompt
+  template?: string; // image-prompt template with a {SCENE} slot (default apocalypse-horror)
+  describeScene?: SceneDescriber; // LLM rewrite of narration -> visual description
   aspectRatio?: string; // e.g. "9:16"
   generate?: HiggsfieldGenerate;
   download?: HiggsfieldDownload;
@@ -78,14 +84,16 @@ export class HiggsfieldVisualProvider implements VisualProvider {
     this.download = opts.download ?? defaultDownload;
   }
 
-  private buildPrompt(scene: Scene): string {
-    const style = this.opts.style?.trim();
-    return style ? `${style}. ${scene.narration}` : scene.narration;
+  private async buildPrompt(scene: Scene): Promise<string> {
+    const description = this.opts.describeScene
+      ? await this.opts.describeScene(scene)
+      : scene.narration;
+    return buildImagePrompt(this.opts.template ?? DEFAULT_TEMPLATE, description);
   }
 
   async fetch(scene: Scene, outDir: string): Promise<VisualResult> {
     await mkdir(outDir, { recursive: true });
-    const url = await this.generate(this.buildPrompt(scene));
+    const url = await this.generate(await this.buildPrompt(scene));
     const bytes = await this.download(url);
     const path = join(outDir, `scene-${scene.index}.png`);
     await writeFile(path, Buffer.from(bytes));

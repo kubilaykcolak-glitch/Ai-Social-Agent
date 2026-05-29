@@ -2,7 +2,7 @@ import { DefaultVideoGenerator } from "./generator.js";
 import { StubTtsProvider, StubVisualProvider, StubRenderer } from "./stub-providers.js";
 import { ElevenLabsTtsProvider } from "./elevenlabs-tts.js";
 import { PexelsVisualProvider } from "./pexels-visual.js";
-import { HiggsfieldVisualProvider } from "./higgsfield-visual.js";
+import { HiggsfieldVisualProvider, type SceneDescriber } from "./higgsfield-visual.js";
 import { FfmpegRenderer } from "./ffmpeg-renderer.js";
 import type {
   Renderer,
@@ -29,7 +29,8 @@ export interface VideoGeneratorConfig {
   higgsfieldApiSecret?: string;
   higgsfieldImageModel?: string;
   higgsfieldAspect?: string;
-  higgsfieldStyle?: string;
+  higgsfieldStyle?: string; // image-prompt template (with optional {SCENE} slot)
+  describeScene?: SceneDescriber; // optional LLM scene->visual-prompt rewriter
   elevenLabsApiKey?: string;
   elevenLabsVoiceId?: string;
   elevenLabsModel?: string;
@@ -55,7 +56,8 @@ export function createVideoGenerator(cfg: VideoGeneratorConfig): VideoGenerator 
       credentials: `${cfg.higgsfieldApiKey}:${cfg.higgsfieldApiSecret}`,
       endpoint: cfg.higgsfieldImageModel,
       aspectRatio: cfg.higgsfieldAspect,
-      style: cfg.higgsfieldStyle,
+      template: cfg.higgsfieldStyle,
+      describeScene: cfg.describeScene,
     });
   } else if (cfg.visualSource === "stock" && cfg.pexelsApiKey) {
     visual = new PexelsVisualProvider({ apiKey: cfg.pexelsApiKey });

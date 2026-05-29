@@ -1,7 +1,8 @@
 import "./load-env.js";
 import { readFile } from "node:fs/promises";
-import { loadConfig, resolveWorkspace, consoleLogger } from "@autosocial/core";
+import { loadConfig, createLlmClient, resolveWorkspace, consoleLogger } from "@autosocial/core";
 import { createVideoGenerator } from "@autosocial/video";
+import { createSceneDescriber } from "./scene-describer.js";
 import { runVideoGeneration } from "./make-video.js";
 
 function argValue(argv: string[], name: string): string | undefined {
@@ -23,6 +24,9 @@ async function main() {
 
   const scriptId = argValue(argv, "id") ?? `vid_${Date.now()}`;
   const layout = resolveWorkspace(cfg.workspaceDir);
+  const useAi = cfg.visualSource === "ai" && Boolean(cfg.higgsfieldApiKey && cfg.higgsfieldApiSecret);
+  const describeScene = useAi ? createSceneDescriber(createLlmClient(cfg)) : undefined;
+
   const generator = createVideoGenerator({
     visualSource: cfg.visualSource,
     videoRenderer: cfg.videoRenderer,
@@ -32,6 +36,7 @@ async function main() {
     higgsfieldImageModel: cfg.higgsfieldImageModel,
     higgsfieldAspect: cfg.higgsfieldAspect,
     higgsfieldStyle: cfg.higgsfieldStyle,
+    describeScene,
     elevenLabsApiKey: cfg.elevenLabsApiKey,
     elevenLabsVoiceId: cfg.elevenLabsVoiceId,
     elevenLabsModel: cfg.elevenLabsModel,

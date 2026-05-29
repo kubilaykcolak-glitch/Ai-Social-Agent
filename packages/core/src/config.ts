@@ -58,9 +58,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     higgsfieldApiSecret: env.HIGGSFIELD_API_SECRET ?? "",
     higgsfieldImageModel: env.HIGGSFIELD_IMAGE_MODEL ?? "flux-pro/kontext/max/text-to-image",
     higgsfieldAspect: env.HIGGSFIELD_ASPECT ?? "9:16",
+    // Image-prompt template with a {SCENE} slot. Default = apocalypse-horror preset
+    // (see packages/video/src/prompt-templates.ts and docs/prompting-templates.md).
     higgsfieldStyle:
       env.HIGGSFIELD_STYLE ??
-      "cinematic still, photorealistic, dark atmospheric, moody volumetric lighting, 35mm film grain",
+      "cinematic film still. {SCENE}. post-apocalyptic horror atmosphere, desolate and eerie, " +
+        "desaturated teal-and-amber grade, consistent volumetric lighting, god rays through haze, " +
+        "deep low-key shadows, dramatic rim light, fog and drifting ash, shot on ARRI Alexa, " +
+        "35mm anamorphic lens, f/2.0 shallow depth of field, Kodak Vision3 film grain, rule of thirds, " +
+        "no text, no watermark, no on-screen captions",
     videoRenderer,
     youtubeClientId: env.YOUTUBE_CLIENT_ID ?? "",
     youtubeClientSecret: env.YOUTUBE_CLIENT_SECRET ?? "",

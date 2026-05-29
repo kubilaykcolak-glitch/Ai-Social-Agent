@@ -71,7 +71,8 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 - `stub-providers.ts` — `StubTtsProvider` (emits a valid **silent WAV** via `buildSilentWav` so the real ffmpeg renderer can consume it — enables free watchable previews), `StubVisualProvider(kind)`, `StubRenderer`, `tokenize()`
 - `elevenlabs-tts.ts` — `ElevenLabsTtsProvider` (real TTS w/ timestamps, injectable http), `charsToWords()`
 - `pexels-visual.ts` — `PexelsVisualProvider` (real stock images, injectable http+download)
-- `higgsfield-visual.ts` — `HiggsfieldVisualProvider` (real **AI image** gen via the official `@higgsfield/client` v2 SDK: `createHiggsfieldClient({credentials:"key:secret"}).subscribe(endpoint,{input:{prompt,aspect_ratio},withPolling})` → `images[0].url` → download; styled prompt = style preset + scene narration; injectable `generate`/`download` for tests). `kind: "ai"`. **Live-verified**: auth + endpoint confirmed (account needs Higgsfield credits to generate)
+- `higgsfield-visual.ts` — `HiggsfieldVisualProvider` (real **AI image** gen via official `@higgsfield/client` v2 SDK: `subscribe(endpoint,{input:{prompt,aspect_ratio},withPolling})` → `images[0].url` → download). Prompt = `buildImagePrompt(template, describeScene(scene) ?? narration)`; injectable `generate`/`download`/`describeScene`. `kind: "ai"`. **Live-verified** (account needs Higgsfield credits)
+- `prompt-templates.ts` — `PROMPT_TEMPLATES` (apocalypse-horror/noir-thriller/liminal-dread presets, each with a `{SCENE}` slot), `DEFAULT_TEMPLATE`, `buildImagePrompt(template, sceneDescription)`. See `docs/prompting-templates.md`
 - `ffmpeg-renderer.ts` — `FfmpegRenderer` (real render, injectable runner) + pure `buildSrt`, `buildConcatList`, `buildFfmpegArgs`, `dimsFor`
 - `generator.ts` — `DefaultVideoGenerator` (planScenes→tts→visuals→time scenes→render 9:16+16:9→`VideoAsset`)
 - `factory.ts` — `createVideoGenerator(config)` (real-vs-stub per keys/renderer): visuals = Higgsfield when `visualSource=ai`+key, Pexels when `stock`+key, else stub. `createStubVideoGenerator(visualKind)`
@@ -93,7 +94,8 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 - `make-video-cli.ts` — CLI (`autosocial-make-video`); builds stub generator from `config.visualSource`
 - `story-arc.ts` — `runStoryArc(deps)`: load/seed bible → `generateArc` (critique+revise) → write part drafts to `story/<seriesId>/arcs/<arcId>/partNN.json` → advance+persist bible. Types `StoryArcDeps`/`StoryArcSummary`
 - `story-arc-cli.ts` — CLI (`autosocial-story-arc`); flags `--series --arc --parts --minutes --premise --genre`. Bible advances on generation; the approval gate is about render/publish, not canon
-- `story-render.ts` — `runStoryRender(deps)`: read an approved part → render hero (16:9 YouTube + 9:16) from `heroScript` and teaser (9:16) from `teaserScript` via the video engine → `videos/<seriesId>/<arcId>/partNN/`. Types `StoryRenderDeps`/`StoryRenderResult`
+- `scene-describer.ts` — `createSceneDescriber(client)`: LLM rewrites a `Scene`'s narration into a concise visual image-prompt (for AI visuals). Type `SceneDescriber`
+- `story-render.ts` — `runStoryRender(deps)`: read an approved part → render hero (16:9 YouTube + 9:16) from `heroScript` and teaser (9:16) from `teaserScript` via the video engine → `videos/<seriesId>/<arcId>/partNN/`. Types `StoryRenderDeps`/`StoryRenderResult`. (CLIs inject `describeScene` when `VISUAL_SOURCE=ai`)
 - `story-render-cli.ts` — CLI (`autosocial-story-render`); `--part-file=` or `--series --arc --part`
 - `story-publish.ts` — `runStoryPublish(deps)`: read approved part → upload hero (16:9) via `VideoUploader` (metadata from `platformMeta`, hashtags→bare tags) → append publishing-log row. Types `StoryPublishDeps`
 - `story-publish-cli.ts` — CLI (`autosocial-story-publish`); locates part + hero `asset.json`, builds uploader via `createVideoUploader`, `--visibility` override (default `config.youtubeDefaultVisibility`)

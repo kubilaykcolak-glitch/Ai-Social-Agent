@@ -20,12 +20,12 @@ const scene: Scene = {
 };
 
 describe("HiggsfieldVisualProvider", () => {
-  it("builds a styled prompt, generates, and downloads the image", async () => {
+  it("fills the template with the narration, generates, and downloads the image", async () => {
     let seenPrompt = "";
     let downloadedUrl = "";
     const provider = new HiggsfieldVisualProvider({
       credentials: "key:secret",
-      style: "cinematic, dark",
+      template: "cinematic still. {SCENE}. film grain, no text",
       generate: async (prompt) => {
         seenPrompt = prompt;
         return "https://img.higgsfield.ai/gen_1.png";
@@ -38,14 +38,33 @@ describe("HiggsfieldVisualProvider", () => {
 
     const result = await provider.fetch(scene, dir);
 
-    expect(seenPrompt).toContain("cinematic, dark"); // style preset
-    expect(seenPrompt).toContain("hunting by sound"); // scene narration
+    expect(seenPrompt).toContain("cinematic still"); // template wrapper
+    expect(seenPrompt).toContain("hunting by sound"); // scene narration in {SCENE}
+    expect(seenPrompt).not.toContain("{SCENE}");
     expect(downloadedUrl).toBe("https://img.higgsfield.ai/gen_1.png");
     expect(result.kind).toBe("ai");
     expect(result.sceneIndex).toBe(1);
     expect(result.path).toBe(join(dir, "scene-1.png"));
     const bytes = await readFile(result.path);
     expect(bytes.length).toBe(4);
+  });
+
+  it("uses the LLM scene description (not raw narration) when a describer is provided", async () => {
+    let seenPrompt = "";
+    const provider = new HiggsfieldVisualProvider({
+      credentials: "key:secret",
+      template: "{SCENE}. cinematic",
+      describeScene: async () => "a ruined city skyline under ash-grey sky",
+      generate: async (prompt) => {
+        seenPrompt = prompt;
+        return "https://img.higgsfield.ai/gen_2.png";
+      },
+      download: async () => new Uint8Array([1, 2, 3]),
+    });
+
+    await provider.fetch(scene, dir);
+    expect(seenPrompt).toContain("a ruined city skyline under ash-grey sky");
+    expect(seenPrompt).not.toContain("hunting by sound"); // narration was replaced
   });
 
   it("propagates a generation failure", async () => {
