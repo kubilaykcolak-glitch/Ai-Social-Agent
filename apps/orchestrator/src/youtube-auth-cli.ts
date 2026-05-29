@@ -1,3 +1,4 @@
+import "./load-env.js";
 import { loadConfig, consoleLogger } from "@autosocial/core";
 import { buildConsentUrl, exchangeCodeForRefreshToken } from "@autosocial/publishing";
 

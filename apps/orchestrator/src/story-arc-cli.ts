@@ -1,3 +1,4 @@
+import "./load-env.js";
 import { loadConfig, createLlmClient, resolveWorkspace, consoleLogger } from "@autosocial/core";
 import { StoryArcGenerator, StoryCritic } from "@autosocial/story";
 import { runStoryArc } from "./story-arc.js";

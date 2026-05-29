@@ -170,8 +170,10 @@ generation ✅ and **real YouTube upload ✅**. End-to-end now runnable: `story-
 2. **Story-mode polish:** AI image visuals (`VISUAL_SOURCE=ai` is still a stub — matters a lot for
    apocalypse visuals where Pexels stock is thin); caption styling; optional bible-edit/approval of
    canon (today the bible advances on generation, not on human approval).
-3. **`.env` autoloading** (dotenv) so all keys load without manual export.
-4. **TikTok/Reels for the 9:16 teasers** (the funnel) — once a TikTok developer app passes audit.
+3. **TikTok/Reels for the 9:16 teasers** (the funnel) — once a TikTok developer app passes audit.
+
+**`.env` autoloading is DONE** — all CLIs import `load-env.ts` (dotenv) first, so a root `.env`
+loads automatically (no manual `$env:` exports). `.env` is git-ignored.
 
 **Deferred (designed, not on critical path):**
 - **Attribution loop (Monetisation B)** — spec at `docs/superpowers/specs/2026-05-29-attribution-loop-design.md`.

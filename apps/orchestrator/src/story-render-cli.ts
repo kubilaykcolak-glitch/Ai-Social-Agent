@@ -1,3 +1,4 @@
+import "./load-env.js";
 import { join } from "node:path";
 import { loadConfig, resolveWorkspace, consoleLogger } from "@autosocial/core";
 import { createVideoGenerator } from "@autosocial/video";

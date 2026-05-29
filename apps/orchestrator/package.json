@@ -19,6 +19,7 @@
     "@autosocial/review": "0.1.0",
     "@autosocial/publishing": "0.1.0",
     "@autosocial/video": "0.1.0",
-    "@autosocial/story": "0.1.0"
+    "@autosocial/story": "0.1.0",
+    "dotenv": "^16.4.5"
   }
 }

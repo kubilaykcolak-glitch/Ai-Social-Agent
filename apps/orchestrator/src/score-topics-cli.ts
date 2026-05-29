@@ -1,3 +1,4 @@
+import "./load-env.js";
 import { loadConfig, createLlmClient, resolveWorkspace, consoleLogger } from "@autosocial/core";
 import { AnthropicTrendScorer } from "@autosocial/trend-detection";
 import { runTopicScoring } from "./score-topics.js";

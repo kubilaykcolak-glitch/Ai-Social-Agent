@@ -1,3 +1,4 @@
+import "./load-env.js";
 import { readFile } from "node:fs/promises";
 import { loadConfig, resolveWorkspace, consoleLogger } from "@autosocial/core";
 import { createVideoGenerator } from "@autosocial/video";
