@@ -8,6 +8,8 @@ import type {
   PublishingLogRow,
   RawTopic,
   ScoredTopic,
+  StoryBible,
+  StoryPart,
 } from "./types.js";
 import type { WorkspaceLayout } from "./workspace.js";
 
@@ -94,6 +96,47 @@ function csvRow(row: PublishingLogRow): string {
   ]
     .map((v) => csvField(String(v)))
     .join(",");
+}
+
+// --- Story mode persistence ---
+
+// Read story/<seriesId>/bible.json. Missing file -> null (caller seeds a new series).
+export async function readStoryBible(
+  layout: WorkspaceLayout,
+  seriesId: string,
+): Promise<StoryBible | null> {
+  const path = join(layout.storyDir, seriesId, "bible.json");
+  if (!existsSync(path)) return null;
+  const raw = await readFile(path, "utf8");
+  return JSON.parse(raw) as StoryBible;
+}
+
+// Write story/<seriesId>/bible.json (creates parent dirs as needed).
+export async function writeStoryBible(
+  layout: WorkspaceLayout,
+  bible: StoryBible,
+): Promise<string> {
+  const dir = join(layout.storyDir, bible.seriesId);
+  await ensureDir(dir);
+  const path = join(dir, "bible.json");
+  await writeFile(path, JSON.stringify(bible, null, 2), "utf8");
+  return path;
+}
+
+// Write one generated part to story/<seriesId>/arcs/<arcId>/partNN.json (awaiting
+// approval). NN is the 1-based part number, zero-padded. Returns the written path.
+export async function writeStoryPartDraft(
+  layout: WorkspaceLayout,
+  seriesId: string,
+  arcId: string,
+  part: StoryPart,
+): Promise<string> {
+  const dir = join(layout.storyDir, seriesId, "arcs", arcId);
+  await ensureDir(dir);
+  const num = String(part.index + 1).padStart(2, "0");
+  const path = join(dir, `part${num}.json`);
+  await writeFile(path, JSON.stringify(part, null, 2), "utf8");
+  return path;
 }
 
 // Append a row to logs/publishing-log.csv, writing the header first if new.

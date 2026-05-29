@@ -3,18 +3,32 @@
 > Read this first when opening the project in a fresh chat. It says what exists, what works,
 > what's deliberately stubbed, and what to do next. For "where does X live", see `PROJECT_MAP.md`.
 
-**Last updated:** 2026-05-28
+**Last updated:** 2026-05-29
 **Repo:** https://github.com/kubilaykcolak-glitch/Ai-Social-Agent (branch `master`)
 **Status:** Phase 1 skeleton + Phase 2 trend radar + monetisation core + video module
-(stub + **real providers**) complete and green. Full `tsc --build` passes; 74 Vitest tests
-pass across 24 files. **Real video rendering verified live** (h264 1080×1920 mp4 with burned
-captions, correct duration) using locally-installed ffmpeg.
+(stub + **real providers**) + **story-mode (serialized AI fiction)** complete and green.
+Full `tsc --build` passes; **95 Vitest tests pass**. **Real video rendering verified live**
+(h264 1080×1920 mp4 with burned captions) using locally-installed ffmpeg; story-render
+verified end-to-end with stub providers.
 
-**Product direction (confirmed):** automate trend-driven social posts AND generate faceless
-short-form **videos** (b-roll + AI voiceover + captions) for TikTok/Reels/Shorts (9:16) and
-YouTube (16:9). Video needs external tools (TTS, stock/AI images, ffmpeg) — Anthropic does NOT
-generate video/images. Providers are pluggable behind interfaces and fall back to stubs when
-keys/tools are absent, so the module runs with or without setup.
+**Product direction (confirmed 2026-05-29 — refocused):** the priority is **AI-generated
+serialized story videos** (e.g. an apocalypse saga) → auto-post to YouTube/TikTok/Instagram →
+earn from **views/ad revenue**. Revenue focus is **sponsor + YouTube ad revenue**; **X is kept
+free/organic** (no paid API, build engagement over time, expand later if it makes sense).
+The **attribution loop** (click/UTM tracking, Monetisation B) is **designed but shelved** — it
+serves the affiliate/sponsor-link model, not view-based ad revenue, so it's off the critical
+path for now (spec at `docs/superpowers/specs/2026-05-29-attribution-loop-design.md`).
+
+Story-mode structure: a planned **multi-part arc** (one coherent story, sliced into cliffhanger
+parts) inside an ongoing **saga** (a persisted "story bible" carries characters/world/canon/open
+threads across arcs). Each part = a long-form **16:9 YouTube hero** + an AI-written short **9:16
+teaser** funneling to it. Quality gate: AI **self-critique + revision loop** against a story-craft
+rubric, then **human approval** before render/publish.
+
+Video needs external tools (TTS, stock/AI images, ffmpeg) — Anthropic does NOT generate
+video/images. Providers are pluggable behind interfaces and fall back to stubs when keys/tools
+are absent. Story generation is pure-LLM (rides the Claude subscription, $0 marginal); the only
+per-video cost is ElevenLabs voiceover (~$1/part: long episode + teaser).
 
 **Video providers (real, wired):**
 - **TTS:** `ElevenLabsTtsProvider` (`/v1/text-to-speech/{voice}/with-timestamps`) → audio + word
@@ -69,16 +83,20 @@ publish via per-platform adapters. Wired together by a pipeline orchestrator wit
   `VisualProvider`, `Renderer`, `VideoGenerator`), `DefaultVideoGenerator`, stub providers,
   **real** providers (`ElevenLabsTtsProvider`, `PexelsVisualProvider`, `FfmpegRenderer`),
   `createVideoGenerator(config)` / `createStubVideoGenerator()`. Outputs `VideoAsset` (9:16 + 16:9).
+- `@autosocial/story` — serialized AI fiction: `StoryArcGenerator` (whole-arc generation, sliced
+  into cliffhanger parts), `StoryCritic` (rubric scoring), `generateArc` (self-critique + revision
+  loop, returns best attempt), `updateBible` (saga continuity). Pure logic, mock-client tested.
 - `@autosocial/orchestrator` — `runPipeline()` (regenerate-once-on-low-score, **applies monetisation
-  before review/publish** when a plan is present) + `cli` (loads the plan from the workspace),
-  `score-topics` (Cowork Automation 1 entrypoint), and `make-video` (script → `videos/<id>/`).
+  before review/publish** when a plan is present) + `cli`, `score-topics` (Cowork Automation 1),
+  `make-video` (script → `videos/<id>/`), **`story-arc`** (generate+critique arc → part drafts +
+  advance bible) and **`story-render`** (approved part → hero 16:9 + teaser 9:16 via the video engine).
 
 ## How to run
 
 ```bash
 npm install
 npm run build          # tsc --build across all packages
-npm test               # 42 tests, all green
+npm test               # 95 tests, all green
 cp .env.example .env   # default LLM_CLIENT=claude-code needs NO key (uses your local Claude login)
 
 # Score topics (Cowork Automation 1): reads $WORKSPACE_DIR/inbox/topics/*.json -> queue/approved-topics.json
@@ -91,6 +109,15 @@ node apps/orchestrator/dist/cli.js --platforms=instagram,tiktok
 # Real output needs: ffmpeg installed + PEXELS_API_KEY + ELEVENLABS_API_KEY in .env.
 # Without keys it falls back to stub providers (placeholder files).
 node apps/orchestrator/dist/make-video-cli.js --id=demo --script="..."
+
+# Story-mode: generate a serialized arc -> story/<series>/arcs/<arc>/partNN.json (drafts).
+# First arc of a new series needs --premise (seeds the bible); later arcs reuse the bible.
+node apps/orchestrator/dist/story-arc-cli.js --series=ashfall --parts=5 --minutes=4 \
+  --premise="A solar flare ends the grid; survivors shelter in a buried mall." --genre="post-apocalyptic"
+
+# Review the part drafts, then render an approved part -> videos/<series>/<arc>/partNN/
+# (hero 16:9+9:16 from heroScript, teaser 9:16 from teaserScript). Stub w/o keys.
+node apps/orchestrator/dist/story-render-cli.js --series=ashfall --arc=<arcId> --part=1
 ```
 
 **ffmpeg note:** installed on this machine via `winget install Gyan.FFmpeg`. It's on PATH for new
@@ -119,20 +146,24 @@ The repo provides the callable agent-side pieces; Cowork wires the folder trigge
 
 ## Suggested next steps (pick up here)
 
-**Video roadmap:** skeleton ✅ → real providers (ElevenLabs TTS, Pexels stock, ffmpeg) ✅ →
-**next:** AI image provider (`VISUAL_SOURCE=ai`), attach `VideoAsset` to `Draft` + publishing
-media upload, optional captions polish (styling/positioning). Then **real trend ingestion**
-(Google Trends/X/TikTok).
+**CRITICAL PATH (confirmed 2026-05-29):** story videos → auto-post → earn from views. Story-mode
+generation is now ✅. The honest gap is **real publishing/upload**.
 
-Monetisation roadmap: **(A) monetisation core ✅ done** → **(B) attribution loop** → **(C) revenue-weighted scoring**.
-- **B — Attribution loop:** record `offerId/campaignId` + tracked URL per post in the publishing log
-  (`appendPublishingLog` exists), and add an ingest step that pulls clicks/conversions/revenue back
-  into the workspace. This is Cowork Automation 3's real purpose.
-- **C — Revenue-weighted scoring:** add a "monetisation potential" axis to `AnthropicTrendScorer`
-  (or a wrapper) so topics matching high-value active sponsors / historically-earning offers rank up.
-- **Phase 3:** upgrade `runPipeline` into the async polling loop (6h poll, score, top-3, dispatch,
-  staging writes) with retry/rate-limit/structured logging.
-- **Phase 4:** wire the first real publishing adapter end-to-end (Twitter/X is simplest).
+1. **Real publishing — YouTube first (TOP priority).** Wire `YoutubeAdapter.publish()` to the real
+   YouTube Data API to upload the rendered hero mp4 (16:9) + title/description/tags. YouTube is the
+   ad-revenue hero and the easiest free API. Then TikTok Content Posting + Instagram Graph for the
+   9:16 teasers. This is what turns "renders locally" into "earns from views". Attach the rendered
+   `VideoAsset` to the publish flow (today adapters take text only — they need a media path).
+2. **Story-mode polish:** AI image visuals (`VISUAL_SOURCE=ai` is still a stub — matters a lot for
+   apocalypse visuals where Pexels stock is thin); caption styling; optional bible-edit/approval of
+   canon (today the bible advances on generation, not on human approval).
+3. **`.env` autoloading** (dotenv) so ELEVENLABS/PEXELS keys load without manual export.
+
+**Deferred (designed, not on critical path):**
+- **Attribution loop (Monetisation B)** — spec at `docs/superpowers/specs/2026-05-29-attribution-loop-design.md`.
+  Serves sponsor/affiliate-link tracking, not view-based ad revenue. Revisit once sponsorships matter.
+- **C — Revenue-weighted scoring**, **Phase 3 async polling loop**, **AI image gen**, **real trend ingestion**.
+- **X/Twitter:** kept free/organic; no paid Basic API. Expand later if engagement justifies it.
 - Add `.env` autoloading (e.g. `dotenv`) — `loadConfig` reads `process.env` but nothing loads `.env`.
 
 ## Conventions to keep

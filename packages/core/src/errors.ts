@@ -18,3 +18,10 @@ export class PublishError extends Error {
     this.name = "PublishError";
   }
 }
+
+export class StoryError extends Error {
+  constructor(message: string, public cause?: unknown) {
+    super(message);
+    this.name = "StoryError";
+  }
+}

@@ -143,3 +143,78 @@ export interface MonetizationDirective {
   url: string; // already UTM-tagged
   disclosure?: string; // set for sponsored posts
 }
+
+// --- Story mode (serialized AI fiction) ---
+
+// A recurring character in the ongoing saga.
+export interface StoryCharacter {
+  name: string;
+  description: string;
+}
+
+// Persistent series memory at story/<seriesId>/bible.json. Carries continuity
+// (characters, world rules, what has happened, unresolved threads) across arcs so
+// each new arc continues the saga consistently.
+export interface StoryBible {
+  seriesId: string;
+  premise: string;
+  genre: string;
+  characters: StoryCharacter[];
+  worldRules: string[];
+  canon: string[]; // events that have happened, chronological
+  openThreads: string[]; // unresolved hooks to pay off in later arcs
+  arcsCompleted: number;
+}
+
+// Per-part platform metadata (titles/descriptions/hashtags for the upload).
+export interface StoryPartMeta {
+  title: string;
+  description: string;
+  hashtags: string[];
+}
+
+// One released part: a long-form narration (the 16:9 YouTube hero) plus a short
+// 9:16 teaser script that hooks + ends on a cliffhanger + points to the hero.
+export interface StoryPart {
+  index: number;
+  title: string;
+  heroScript: string;
+  teaserScript: string;
+  hook: string;
+  cliffhanger: string;
+  platformMeta: StoryPartMeta;
+}
+
+// New canon an arc contributes, applied to the bible after the arc is generated.
+export interface BibleUpdate {
+  newCharacters: StoryCharacter[];
+  newCanon: string[];
+  resolvedThreads: string[];
+  newThreads: string[];
+}
+
+// A complete, coherent multi-part story arc generated as a whole, then sliced into
+// cliffhanger parts. `bibleUpdate` feeds saga continuity.
+export interface StoryArc {
+  arcId: string;
+  seriesId: string;
+  title: string;
+  logline: string;
+  parts: StoryPart[];
+  bibleUpdate: BibleUpdate;
+}
+
+// What to generate: how many parts and the per-part hero length target.
+export interface StoryArcRequest {
+  arcId: string;
+  numParts: number;
+  targetMinutes: number;
+  revisionNotes?: string[]; // critic issues fed back on a revision pass
+}
+
+// The critic's verdict on a generated arc, against the story-craft rubric.
+export interface StoryCritique {
+  score: number; // 0..100
+  issues: string[];
+  passed: boolean;
+}

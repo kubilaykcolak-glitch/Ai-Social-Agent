@@ -19,21 +19,22 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 | `@autosocial/review` | `packages/review` | AI self-critique review/scoring |
 | `@autosocial/publishing` | `packages/publishing` | Publisher + 6 platform adapters |
 | `@autosocial/video` | `packages/video` | Faceless video pipeline (stub-first) |
-| `@autosocial/orchestrator` | `apps/orchestrator` | Pipeline + CLIs (content, score-topics, make-video) |
+| `@autosocial/story` | `packages/story` | Serialized AI story-mode (arc generation + self-critique loop + saga bible) |
+| `@autosocial/orchestrator` | `apps/orchestrator` | Pipeline + CLIs (content, score-topics, make-video, story-arc, story-render) |
 
 ## File index
 
 ### packages/core/src
-- `types.ts` — `PlatformName`, `Trend`, `ContentBrief`, `PlatformContent`, `GeneratedContent`, `ReviewResult`, `ValidationResult`, `PublishResult`; FS-contract types: `RawTopic`, `ScoredTopic`, `ApprovedTopicsFile`, `Draft`, `PublishingLogRow`
+- `types.ts` — `PlatformName`, `Trend`, `ContentBrief`, `PlatformContent`, `GeneratedContent`, `ReviewResult`, `ValidationResult`, `PublishResult`; FS-contract types: `RawTopic`, `ScoredTopic`, `ApprovedTopicsFile`, `Draft`, `PublishingLogRow`; story types: `StoryCharacter`, `StoryBible`, `StoryPart`, `StoryPartMeta`, `BibleUpdate`, `StoryArc`, `StoryArcRequest`, `StoryCritique`
 - `interfaces.ts` — `TrendDetector`, `TrendScorer`, `ContentGenerator`, `ContentReviewer`, `PlatformAdapter`, `Publisher`
 - `errors.ts` — `GenerationError`, `ReviewError`, `PublishError`
 - `logger.ts` — `Logger` interface, `consoleLogger`
-- `config.ts` — `AppConfig`, `LlmClientKind`, `loadConfig(env)` (`LLM_CLIENT`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `REVIEW_SCORE_THRESHOLD`, `TOPIC_SCORE_THRESHOLD`, `WORKSPACE_DIR`)
+- `config.ts` — `AppConfig`, `LlmClientKind`, `loadConfig(env)` (`LLM_CLIENT`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `REVIEW_SCORE_THRESHOLD`, `TOPIC_SCORE_THRESHOLD`, `STORY_SCORE_THRESHOLD`, `STORY_MAX_REVISIONS`, `WORKSPACE_DIR`)
 - `anthropic-client.ts` — `AnthropicClient` interface, `SdkAnthropicClient` (metered API key; GA `messages.create` + `cache_control`)
 - `claude-code-client.ts` — `ClaudeCodeClient` (local Claude subscription via Agent SDK `query()`, no API key)
 - `llm.ts` — `createLlmClient(config)` factory (default `claude-code`, fallback `api`)
-- `workspace.ts` — `WorkspaceLayout`, `resolveWorkspace(root)` (inbox/queue/drafts/staging/log/monetization paths)
-- `fs-store.ts` — `readInboxTopics`, `writeApprovedTopics`, `writeDraft`, `moveDraft`, `appendPublishingLog`, `readMonetizationPlan`
+- `workspace.ts` — `WorkspaceLayout`, `resolveWorkspace(root)` (inbox/queue/drafts/staging/log/monetization/videos/**story** paths)
+- `fs-store.ts` — `readInboxTopics`, `writeApprovedTopics`, `writeDraft`, `moveDraft`, `appendPublishingLog`, `readMonetizationPlan`, `readStoryBible`, `writeStoryBible`, `writeStoryPartDraft`
 - `utm.ts` — `buildUtmUrl(base, {source,medium,campaign,content})` (preserves existing query)
 - `monetization.ts` — `selectMonetization(plan, opts)` (active sponsor else cross-promo; YouTube excluded from self cross-promo), `applyMonetization(content, plan, {now,postId})` (appends CTA+tracked link+disclosure per platform). Types: `SponsorCampaign`, `CrossPromoTarget`, `MonetizationPlan`, `MonetizationDirective`, `Payout`
 - `index.ts` — barrel re-export of all of the above
@@ -71,6 +72,13 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 - `factory.ts` — `createVideoGenerator(config)` (real-vs-stub per keys/renderer), `createStubVideoGenerator(visualKind)`
 - `index.ts` — re-export
 
+### packages/story/src
+- `arc-generator.ts` — `StoryArcGenerator` (AnthropicClient): generates a COMPLETE coherent arc as one whole, sliced into cliffhanger parts; parses/validates JSON, attaches arcId/seriesId + zero-based part indexes; throws `StoryError`. Feeds `revisionNotes` into the prompt
+- `critic.ts` — `StoryCritic` (AnthropicClient): scores an arc 0–100 against a story-craft rubric (hook/tension/cliffhanger/bible-consistency/anti-slop), `passed = score >= threshold`
+- `generate.ts` — `generateArc(deps)` revision loop: generate→critique→revise (feeding issues back) until passed or `maxRevisions` exhausted; returns best-scoring attempt. Types `GenerateArcDeps`/`GenerateArcResult`
+- `bible.ts` — `updateBible(bible, arc)` pure: append new canon/characters (dedup by name)/threads, remove resolved threads, bump `arcsCompleted` (saga continuity)
+- `index.ts` — re-export
+
 ### apps/orchestrator/src
 - `pipeline.ts` — `runPipeline(cfg)`, types `PipelineConfig` / `PipelineOutput`; sequences detect→generate→(monetise)→review→publish with regenerate-once-on-low-score. `cfg.monetization?` applies CTAs before review/publish
 - `cli.ts` — content-pipeline CLI entrypoint; `parsePlatforms(argv)`, builds real deps, runs pipeline, prints results
@@ -78,6 +86,10 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 - `score-topics-cli.ts` — CLI for Cowork Automation 1 (`autosocial-score-topics`); wires config/llm/workspace/scorer
 - `make-video.ts` — `runVideoGeneration(deps)`: script → `videos/<scriptId>/` + asset.json
 - `make-video-cli.ts` — CLI (`autosocial-make-video`); builds stub generator from `config.visualSource`
+- `story-arc.ts` — `runStoryArc(deps)`: load/seed bible → `generateArc` (critique+revise) → write part drafts to `story/<seriesId>/arcs/<arcId>/partNN.json` → advance+persist bible. Types `StoryArcDeps`/`StoryArcSummary`
+- `story-arc-cli.ts` — CLI (`autosocial-story-arc`); flags `--series --arc --parts --minutes --premise --genre`. Bible advances on generation; the approval gate is about render/publish, not canon
+- `story-render.ts` — `runStoryRender(deps)`: read an approved part → render hero (16:9 YouTube + 9:16) from `heroScript` and teaser (9:16) from `teaserScript` via the video engine → `videos/<seriesId>/<arcId>/partNN/`. Types `StoryRenderDeps`/`StoryRenderResult`
+- `story-render-cli.ts` — CLI (`autosocial-story-render`); `--part-file=` or `--series --arc --part`
 
 ## Where to make common changes
 
@@ -85,7 +97,8 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 - **Add/modify a platform** → new/edit adapter in `packages/publishing/src/adapters`, register in `DefaultPublisher` constructor + `index.ts`.
 - **Wire a real platform API** → replace the `// TODO` stub in that adapter's `publish()`.
 - **Change a shared shape** → `packages/core/src/types.ts` (propagates everywhere).
-- **Tune prompts** → `SYSTEM` const in `generator.ts` / `reviewer.ts`.
+- **Tune prompts** → `SYSTEM` const in `generator.ts` / `reviewer.ts`; story-craft prompts in `packages/story/src/arc-generator.ts` / `critic.ts`.
+- **Tune story quality bar** → `STORY_SCORE_THRESHOLD` / `STORY_MAX_REVISIONS` in `config.ts`; rubric in `critic.ts`.
 - **Change model / caching** → `anthropic-client.ts`; model id default in `config.ts`.
 
 ## Stubs / TODO call sites (real integrations not yet wired)

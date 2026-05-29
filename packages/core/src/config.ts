@@ -7,6 +7,8 @@ export interface AppConfig {
   anthropicModel: string;
   reviewScoreThreshold: number;
   topicApprovalThreshold: number;
+  storyScoreThreshold: number;
+  storyMaxRevisions: number;
   workspaceDir: string;
   llmClient: LlmClientKind;
   visualSource: VisualSource;
@@ -27,6 +29,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     anthropicModel: env.ANTHROPIC_MODEL ?? "claude-opus-4-7",
     reviewScoreThreshold: Number(env.REVIEW_SCORE_THRESHOLD ?? "70"),
     topicApprovalThreshold: Number(env.TOPIC_SCORE_THRESHOLD ?? "60"),
+    storyScoreThreshold: Number(env.STORY_SCORE_THRESHOLD ?? "75"),
+    storyMaxRevisions: Number(env.STORY_MAX_REVISIONS ?? "2"),
     workspaceDir: env.WORKSPACE_DIR ?? "./workspace",
     llmClient,
     visualSource,

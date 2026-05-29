@@ -11,8 +11,11 @@ import {
   moveDraft,
   appendPublishingLog,
   readMonetizationPlan,
+  readStoryBible,
+  writeStoryBible,
+  writeStoryPartDraft,
 } from "./fs-store.js";
-import type { Draft, PublishingLogRow, ScoredTopic } from "./types.js";
+import type { Draft, PublishingLogRow, ScoredTopic, StoryBible, StoryPart } from "./types.js";
 
 let ws: WorkspaceLayout;
 let dir: string;
@@ -136,5 +139,45 @@ describe("appendPublishingLog", () => {
     expect(lines[0]).toBe("timestamp,topicId,topic,platform,status,postId,url,error");
     expect(lines).toHaveLength(3);
     expect(lines[2]).toContain('"with, comma"'); // comma field is quoted
+  });
+});
+
+describe("story bible + part drafts", () => {
+  const bible: StoryBible = {
+    seriesId: "ashfall",
+    premise: "A solar flare ends the grid; survivors in a buried mall.",
+    genre: "post-apocalyptic",
+    characters: [{ name: "Mara", description: "ex-paramedic, pragmatic leader" }],
+    worldRules: ["No electricity above ground", "Night brings the cold-walkers"],
+    canon: ["Day 1: the flare hit at dawn"],
+    openThreads: ["Who sabotaged the water filter?"],
+    arcsCompleted: 0,
+  };
+
+  it("returns null when the bible does not exist", async () => {
+    expect(await readStoryBible(ws, "ashfall")).toBeNull();
+  });
+
+  it("round-trips a bible write then read", async () => {
+    await writeStoryBible(ws, bible);
+    const read = await readStoryBible(ws, "ashfall");
+    expect(read).toEqual(bible);
+  });
+
+  it("writes a part draft as a zero-padded file under the arc dir", async () => {
+    const part: StoryPart = {
+      index: 2,
+      title: "The Filter Breaks",
+      heroScript: "Long narration...",
+      teaserScript: "Short hook...",
+      hook: "The water turned black.",
+      cliffhanger: "Then the lights came back on.",
+      platformMeta: { title: "Ashfall Part 3", description: "desc", hashtags: ["#apocalypse"] },
+    };
+    const path = await writeStoryPartDraft(ws, "ashfall", "arc1", part);
+    expect(path.endsWith(join("ashfall", "arcs", "arc1", "part03.json"))).toBe(true);
+    expect(existsSync(path)).toBe(true);
+    const parsed = JSON.parse(await readFile(path, "utf8")) as StoryPart;
+    expect(parsed.title).toBe("The Filter Breaks");
   });
 });
