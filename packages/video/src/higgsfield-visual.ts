@@ -2,32 +2,48 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Scene, VisualProvider, VisualResult } from "./types.js";
 
-// Injectable HTTP so the submit/poll/download flow is unit-testable without the live API.
-export type HiggsfieldPostJson = (
-  url: string,
-  body: unknown,
-  headers: Record<string, string>,
-) => Promise<unknown>;
-export type HiggsfieldGetJson = (url: string, headers: Record<string, string>) => Promise<unknown>;
+// Generates one image for `prompt` and returns its URL. Injectable so the provider is
+// unit-testable without the SDK, network, or credentials.
+export type HiggsfieldGenerate = (prompt: string) => Promise<string>;
 export type HiggsfieldDownload = (url: string) => Promise<Uint8Array>;
 
-const defaultPostJson: HiggsfieldPostJson = async (url, body, headers) => {
-  const f = (globalThis as { fetch: (i: string, init?: unknown) => Promise<any> }).fetch;
-  const res = await f(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...headers },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`Higgsfield ${res.status}: ${await res.text()}`);
-  return res.json();
-};
+// Minimal shape of the official SDK's V2Response we rely on.
+interface V2Response {
+  status: string;
+  images?: Array<{ url: string }>;
+}
 
-const defaultGetJson: HiggsfieldGetJson = async (url, headers) => {
-  const f = (globalThis as { fetch: (i: string, init?: unknown) => Promise<any> }).fetch;
-  const res = await f(url, { headers });
-  if (!res.ok) throw new Error(`Higgsfield ${res.status}: ${await res.text()}`);
-  return res.json();
-};
+const DEFAULT_ENDPOINT = "flux-pro/kontext/max/text-to-image";
+
+// Default generator: uses the official @higgsfield/client v2 SDK (credentials = "key:secret"),
+// submits a text-to-image job, polls to completion, and returns the image URL.
+function defaultGenerate(
+  credentials: string,
+  endpoint: string,
+  aspectRatio: string,
+): HiggsfieldGenerate {
+  return async (prompt) => {
+    const { createHiggsfieldClient } = (await import("@higgsfield/client/v2")) as {
+      createHiggsfieldClient: (cfg: { credentials: string }) => {
+        subscribe: (
+          ep: string,
+          opts: { input: Record<string, unknown>; withPolling?: boolean },
+        ) => Promise<V2Response>;
+      };
+    };
+    const client = createHiggsfieldClient({ credentials });
+    const res = await client.subscribe(endpoint, {
+      input: { prompt, aspect_ratio: aspectRatio },
+      withPolling: true,
+    });
+    if (res.status !== "completed") {
+      throw new Error(`Higgsfield generation not completed (status: ${res.status})`);
+    }
+    const url = res.images?.[0]?.url;
+    if (!url) throw new Error("Higgsfield: completed response had no image url");
+    return url;
+  };
+}
 
 const defaultDownload: HiggsfieldDownload = async (url) => {
   const f = (globalThis as { fetch: (i: string, init?: unknown) => Promise<any> }).fetch;
@@ -37,60 +53,29 @@ const defaultDownload: HiggsfieldDownload = async (url) => {
 };
 
 export interface HiggsfieldVisualOptions {
-  apiKey: string;
-  model?: string; // default "flux"
+  credentials: string; // "apiKey:apiSecret"
+  endpoint?: string; // text-to-image service id
   style?: string; // prepended to every scene prompt
-  width?: number;
-  height?: number;
-  steps?: number;
-  baseUrl?: string;
-  pollIntervalMs?: number;
-  maxPolls?: number;
-  httpPostJson?: HiggsfieldPostJson;
-  httpGetJson?: HiggsfieldGetJson;
+  aspectRatio?: string; // e.g. "9:16"
+  generate?: HiggsfieldGenerate;
   download?: HiggsfieldDownload;
 }
 
-interface SubmitResponse {
-  id: string;
-  status?: string;
-}
-interface PollResponse {
-  id?: string;
-  status?: string;
-  error?: string;
-  results?: Array<{ url?: string }>;
-  output?: { url?: string };
-  image_url?: string;
-  url?: string;
-}
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-// Pull the finished image URL out of a completed poll response, tolerating the few
-// shapes the API may use (pinned precisely against live docs during verification).
-function extractImageUrl(p: PollResponse): string | undefined {
-  return p.results?.[0]?.url ?? p.output?.url ?? p.image_url ?? p.url;
-}
-
-// AI image provider backed by the Higgsfield Cloud REST API (text-to-image, e.g. FLUX).
-// Submits an async generation, polls until completion, downloads the still.
+// AI image provider backed by the official Higgsfield SDK (text-to-image, e.g. FLUX).
 export class HiggsfieldVisualProvider implements VisualProvider {
   readonly kind = "ai" as const;
-  private postJson: HiggsfieldPostJson;
-  private getJson: HiggsfieldGetJson;
+  private generate: HiggsfieldGenerate;
   private download: HiggsfieldDownload;
-  private baseUrl: string;
-  private pollIntervalMs: number;
-  private maxPolls: number;
 
   constructor(private opts: HiggsfieldVisualOptions) {
-    this.postJson = opts.httpPostJson ?? defaultPostJson;
-    this.getJson = opts.httpGetJson ?? defaultGetJson;
+    this.generate =
+      opts.generate ??
+      defaultGenerate(
+        opts.credentials,
+        opts.endpoint ?? DEFAULT_ENDPOINT,
+        opts.aspectRatio ?? "9:16",
+      );
     this.download = opts.download ?? defaultDownload;
-    this.baseUrl = opts.baseUrl ?? "https://api.higgsfield.ai";
-    this.pollIntervalMs = opts.pollIntervalMs ?? 1500;
-    this.maxPolls = opts.maxPolls ?? 80;
   }
 
   private buildPrompt(scene: Scene): string {
@@ -98,51 +83,10 @@ export class HiggsfieldVisualProvider implements VisualProvider {
     return style ? `${style}. ${scene.narration}` : scene.narration;
   }
 
-  private headers(): Record<string, string> {
-    return { Authorization: `Bearer ${this.opts.apiKey}` };
-  }
-
   async fetch(scene: Scene, outDir: string): Promise<VisualResult> {
     await mkdir(outDir, { recursive: true });
-
-    const submitted = (await this.postJson(
-      `${this.baseUrl}/v1/generations`,
-      {
-        task: "text-to-image",
-        model: this.opts.model ?? "flux",
-        prompt: this.buildPrompt(scene),
-        width: this.opts.width ?? 1024,
-        height: this.opts.height ?? 1024,
-        ...(this.opts.steps ? { steps: this.opts.steps } : {}),
-      },
-      this.headers(),
-    )) as SubmitResponse;
-
-    if (!submitted.id) throw new Error("Higgsfield: submit returned no generation id");
-
-    let imageUrl: string | undefined;
-    for (let i = 0; i < this.maxPolls; i++) {
-      const poll = (await this.getJson(
-        `${this.baseUrl}/v1/generations/${submitted.id}`,
-        this.headers(),
-      )) as PollResponse;
-
-      const status = (poll.status ?? "").toLowerCase();
-      if (status === "completed" || status === "succeeded") {
-        imageUrl = extractImageUrl(poll);
-        break;
-      }
-      if (status === "failed" || status === "error") {
-        throw new Error(`Higgsfield generation failed: ${poll.error ?? status}`);
-      }
-      await sleep(this.pollIntervalMs);
-    }
-
-    if (!imageUrl) {
-      throw new Error(`Higgsfield generation timed out after ${this.maxPolls} polls`);
-    }
-
-    const bytes = await this.download(imageUrl);
+    const url = await this.generate(this.buildPrompt(scene));
+    const bytes = await this.download(url);
     const path = join(outDir, `scene-${scene.index}.png`);
     await writeFile(path, Buffer.from(bytes));
     return { sceneIndex: scene.index, path, kind: this.kind };

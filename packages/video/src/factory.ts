@@ -26,7 +26,9 @@ export interface VideoGeneratorConfig {
   videoRenderer: "ffmpeg" | "stub";
   pexelsApiKey?: string;
   higgsfieldApiKey?: string;
+  higgsfieldApiSecret?: string;
   higgsfieldImageModel?: string;
+  higgsfieldAspect?: string;
   higgsfieldStyle?: string;
   elevenLabsApiKey?: string;
   elevenLabsVoiceId?: string;
@@ -48,10 +50,11 @@ export function createVideoGenerator(cfg: VideoGeneratorConfig): VideoGenerator 
     : new StubTtsProvider();
 
   let visual: VisualProvider;
-  if (cfg.visualSource === "ai" && cfg.higgsfieldApiKey) {
+  if (cfg.visualSource === "ai" && cfg.higgsfieldApiKey && cfg.higgsfieldApiSecret) {
     visual = new HiggsfieldVisualProvider({
-      apiKey: cfg.higgsfieldApiKey,
-      model: cfg.higgsfieldImageModel,
+      credentials: `${cfg.higgsfieldApiKey}:${cfg.higgsfieldApiSecret}`,
+      endpoint: cfg.higgsfieldImageModel,
+      aspectRatio: cfg.higgsfieldAspect,
       style: cfg.higgsfieldStyle,
     });
   } else if (cfg.visualSource === "stock" && cfg.pexelsApiKey) {

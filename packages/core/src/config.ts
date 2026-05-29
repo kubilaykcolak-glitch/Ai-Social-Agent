@@ -18,9 +18,11 @@ export interface AppConfig {
   elevenLabsVoiceId: string;
   elevenLabsModel: string;
   pexelsApiKey: string;
-  // AI image generation (VISUAL_SOURCE=ai). Empty key -> stub visual is used instead.
+  // AI image generation (VISUAL_SOURCE=ai). Needs BOTH key+secret, else stub visual.
   higgsfieldApiKey: string;
-  higgsfieldImageModel: string;
+  higgsfieldApiSecret: string;
+  higgsfieldImageModel: string; // text-to-image service id
+  higgsfieldAspect: string; // e.g. "9:16"
   higgsfieldStyle: string;
   videoRenderer: VideoRenderer;
   // YouTube upload (empty creds -> stub uploader is used instead)
@@ -53,7 +55,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     elevenLabsModel: env.ELEVENLABS_MODEL ?? "eleven_multilingual_v2",
     pexelsApiKey: env.PEXELS_API_KEY ?? "",
     higgsfieldApiKey: env.HIGGSFIELD_API_KEY ?? "",
-    higgsfieldImageModel: env.HIGGSFIELD_IMAGE_MODEL ?? "flux",
+    higgsfieldApiSecret: env.HIGGSFIELD_API_SECRET ?? "",
+    higgsfieldImageModel: env.HIGGSFIELD_IMAGE_MODEL ?? "flux-pro/kontext/max/text-to-image",
+    higgsfieldAspect: env.HIGGSFIELD_ASPECT ?? "9:16",
     higgsfieldStyle:
       env.HIGGSFIELD_STYLE ??
       "cinematic still, photorealistic, dark atmospheric, moody volumetric lighting, 35mm film grain",

@@ -153,9 +153,11 @@ The repo provides the callable agent-side pieces; Cowork wires the folder trigge
    `YOUTUBE_*` creds; uploads default to private). The *text* adapters (Instagram Graph, TikTok,
    X v2, CMS REST) still have `// TODO` mock `publish()`. TikTok/Instagram **video** upload not built.
 3. **Real video works with keys + ffmpeg** (ElevenLabs TTS, Pexels stock, ffmpeg render). **AI image
-   generation is now REAL too** (`VISUAL_SOURCE=ai` + `HIGGSFIELD_API_KEY` → `HiggsfieldVisualProvider`,
-   FLUX via Higgsfield Cloud). The 9:16 teaser is rendered but not yet uploaded anywhere (YouTube
-   upload is the 16:9 hero only). **AI video clips** (Higgsfield image-to-video) are the next visual phase.
+   generation is now REAL too** (`VISUAL_SOURCE=ai` + `HIGGSFIELD_API_KEY`+`HIGGSFIELD_API_SECRET` →
+   `HiggsfieldVisualProvider`, FLUX via the official `@higgsfield/client` v2 SDK). **Live-verified**:
+   auth + endpoint confirmed working — only blocker is the Higgsfield account needs credits to generate.
+   The 9:16 teaser is rendered but not yet uploaded (YouTube upload is the 16:9 hero only).
+   **AI video clips** (Higgsfield image-to-video) are the next visual phase.
 4. No `.env` autoloading, scheduling/async loop, persistence, or web UI yet.
 
 ## Suggested next steps (pick up here)

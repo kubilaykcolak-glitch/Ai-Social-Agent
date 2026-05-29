@@ -29,7 +29,7 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 - `interfaces.ts` — `TrendDetector`, `TrendScorer`, `ContentGenerator`, `ContentReviewer`, `PlatformAdapter`, `Publisher`, `VideoUploader` (uploads a rendered video file; `VideoUploadMetadata` in types.ts)
 - `errors.ts` — `GenerationError`, `ReviewError`, `PublishError`
 - `logger.ts` — `Logger` interface, `consoleLogger`
-- `config.ts` — `AppConfig`, `LlmClientKind`, `VideoVisibility`, `loadConfig(env)` (`LLM_CLIENT`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `REVIEW_SCORE_THRESHOLD`, `TOPIC_SCORE_THRESHOLD`, `STORY_SCORE_THRESHOLD`, `STORY_MAX_REVISIONS`, `WORKSPACE_DIR`, `HIGGSFIELD_API_KEY/IMAGE_MODEL/STYLE`, `YOUTUBE_CLIENT_ID/SECRET/REFRESH_TOKEN`, `YOUTUBE_DEFAULT_VISIBILITY`)
+- `config.ts` — `AppConfig`, `LlmClientKind`, `VideoVisibility`, `loadConfig(env)` (`LLM_CLIENT`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `REVIEW_SCORE_THRESHOLD`, `TOPIC_SCORE_THRESHOLD`, `STORY_SCORE_THRESHOLD`, `STORY_MAX_REVISIONS`, `WORKSPACE_DIR`, `HIGGSFIELD_API_KEY/API_SECRET/IMAGE_MODEL/ASPECT/STYLE`, `YOUTUBE_CLIENT_ID/SECRET/REFRESH_TOKEN`, `YOUTUBE_DEFAULT_VISIBILITY`)
 - `anthropic-client.ts` — `AnthropicClient` interface, `SdkAnthropicClient` (metered API key; GA `messages.create` + `cache_control`)
 - `claude-code-client.ts` — `ClaudeCodeClient` (local Claude subscription via Agent SDK `query()`, no API key)
 - `llm.ts` — `createLlmClient(config)` factory (default `claude-code`, fallback `api`)
@@ -71,7 +71,7 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 - `stub-providers.ts` — `StubTtsProvider` (emits a valid **silent WAV** via `buildSilentWav` so the real ffmpeg renderer can consume it — enables free watchable previews), `StubVisualProvider(kind)`, `StubRenderer`, `tokenize()`
 - `elevenlabs-tts.ts` — `ElevenLabsTtsProvider` (real TTS w/ timestamps, injectable http), `charsToWords()`
 - `pexels-visual.ts` — `PexelsVisualProvider` (real stock images, injectable http+download)
-- `higgsfield-visual.ts` — `HiggsfieldVisualProvider` (real **AI image** gen via Higgsfield Cloud REST: `POST /v1/generations` submit → poll `GET /v1/generations/{id}` → download; styled prompt from scene + style preset; injectable http). `kind: "ai"`
+- `higgsfield-visual.ts` — `HiggsfieldVisualProvider` (real **AI image** gen via the official `@higgsfield/client` v2 SDK: `createHiggsfieldClient({credentials:"key:secret"}).subscribe(endpoint,{input:{prompt,aspect_ratio},withPolling})` → `images[0].url` → download; styled prompt = style preset + scene narration; injectable `generate`/`download` for tests). `kind: "ai"`. **Live-verified**: auth + endpoint confirmed (account needs Higgsfield credits to generate)
 - `ffmpeg-renderer.ts` — `FfmpegRenderer` (real render, injectable runner) + pure `buildSrt`, `buildConcatList`, `buildFfmpegArgs`, `dimsFor`
 - `generator.ts` — `DefaultVideoGenerator` (planScenes→tts→visuals→time scenes→render 9:16+16:9→`VideoAsset`)
 - `factory.ts` — `createVideoGenerator(config)` (real-vs-stub per keys/renderer): visuals = Higgsfield when `visualSource=ai`+key, Pexels when `stock`+key, else stub. `createStubVideoGenerator(visualKind)`

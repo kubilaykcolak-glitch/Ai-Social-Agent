@@ -37,7 +37,9 @@ async function main() {
     videoRenderer: cfg.videoRenderer,
     pexelsApiKey: cfg.pexelsApiKey,
     higgsfieldApiKey: cfg.higgsfieldApiKey,
+    higgsfieldApiSecret: cfg.higgsfieldApiSecret,
     higgsfieldImageModel: cfg.higgsfieldImageModel,
+    higgsfieldAspect: cfg.higgsfieldAspect,
     higgsfieldStyle: cfg.higgsfieldStyle,
     elevenLabsApiKey: cfg.elevenLabsApiKey,
     elevenLabsVoiceId: cfg.elevenLabsVoiceId,
@@ -45,7 +47,7 @@ async function main() {
   });
 
   const visuals =
-    cfg.visualSource === "ai" && cfg.higgsfieldApiKey
+    cfg.visualSource === "ai" && cfg.higgsfieldApiKey && cfg.higgsfieldApiSecret
       ? "higgsfield (ai)"
       : cfg.visualSource === "stock" && cfg.pexelsApiKey
         ? "pexels (stock)"
