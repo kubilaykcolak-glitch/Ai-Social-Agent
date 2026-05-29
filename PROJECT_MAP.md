@@ -68,7 +68,7 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 ### packages/video/src
 - `types.ts` — `Scene`, `WordTiming`, `TtsResult`, `VisualResult`, `TimedScene`, `RenderSpec`, `VideoAsset`, `AspectRatio`, `VisualKind`; interfaces `TtsProvider`, `VisualProvider`, `Renderer`, `VideoGenerator`
 - `scenes.ts` — `planScenes(script)` deterministic script→scenes splitter (+ visualQuery keywords)
-- `stub-providers.ts` — `StubTtsProvider`, `StubVisualProvider(kind)`, `StubRenderer`, `tokenize()` (no keys/ffmpeg; placeholder files)
+- `stub-providers.ts` — `StubTtsProvider` (emits a valid **silent WAV** via `buildSilentWav` so the real ffmpeg renderer can consume it — enables free watchable previews), `StubVisualProvider(kind)`, `StubRenderer`, `tokenize()`
 - `elevenlabs-tts.ts` — `ElevenLabsTtsProvider` (real TTS w/ timestamps, injectable http), `charsToWords()`
 - `pexels-visual.ts` — `PexelsVisualProvider` (real stock images, injectable http+download)
 - `ffmpeg-renderer.ts` — `FfmpegRenderer` (real render, injectable runner) + pure `buildSrt`, `buildConcatList`, `buildFfmpegArgs`, `dimsFor`

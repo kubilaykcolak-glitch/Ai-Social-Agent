@@ -13,13 +13,37 @@ import type {
 } from "./types.js";
 
 const SECONDS_PER_WORD = 0.4;
+const STUB_SAMPLE_RATE = 8000; // mono 16-bit; low rate keeps the silent file small
 
 export function tokenize(text: string): string[] {
   return text.split(/\s+/).filter(Boolean);
 }
 
-// Stub TTS: no real audio. Writes a placeholder file and fabricates word timings
-// at a fixed words-per-second rate so downstream timing logic can be exercised.
+// Build a valid PCM WAV of `durationSec` of silence (mono, 16-bit). Dependency-free —
+// so the stub TTS produces a real audio container the ffmpeg renderer can ingest,
+// enabling a free, watchable preview (real visuals + captions, silent narration).
+export function buildSilentWav(durationSec: number, sampleRate = STUB_SAMPLE_RATE): Buffer {
+  const numSamples = Math.max(1, Math.round(durationSec * sampleRate));
+  const dataSize = numSamples * 2; // 16-bit mono
+  const buf = Buffer.alloc(44 + dataSize); // header + silence (already zeroed)
+  buf.write("RIFF", 0, "ascii");
+  buf.writeUInt32LE(36 + dataSize, 4);
+  buf.write("WAVE", 8, "ascii");
+  buf.write("fmt ", 12, "ascii");
+  buf.writeUInt32LE(16, 16); // fmt chunk size
+  buf.writeUInt16LE(1, 20); // PCM
+  buf.writeUInt16LE(1, 22); // mono
+  buf.writeUInt32LE(sampleRate, 24);
+  buf.writeUInt32LE(sampleRate * 2, 28); // byte rate
+  buf.writeUInt16LE(2, 32); // block align
+  buf.writeUInt16LE(16, 34); // bits per sample
+  buf.write("data", 36, "ascii");
+  buf.writeUInt32LE(dataSize, 40);
+  return buf;
+}
+
+// Stub TTS: no real voice, but emits a valid silent WAV (so the real renderer works)
+// and fabricates word timings at a fixed rate so caption/timing logic is exercised.
 export class StubTtsProvider implements TtsProvider {
   async synthesize(text: string, outDir: string): Promise<TtsResult> {
     await mkdir(outDir, { recursive: true });
@@ -29,9 +53,10 @@ export class StubTtsProvider implements TtsProvider {
       startSec: i * SECONDS_PER_WORD,
       endSec: (i + 1) * SECONDS_PER_WORD,
     }));
-    const audioPath = join(outDir, "voiceover.mp3");
-    await writeFile(audioPath, `STUB AUDIO\n${text}`, "utf8");
-    return { audioPath, durationSec: words.length * SECONDS_PER_WORD, words: timings };
+    const durationSec = words.length * SECONDS_PER_WORD;
+    const audioPath = join(outDir, "voiceover.wav");
+    await writeFile(audioPath, buildSilentWav(durationSec));
+    return { audioPath, durationSec, words: timings };
   }
 }
 

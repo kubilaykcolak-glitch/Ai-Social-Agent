@@ -34,7 +34,7 @@ describe("DefaultVideoGenerator", () => {
     expect(asset.widescreen).toContain("16x9");
     expect(asset.durationSec).toBeGreaterThan(0);
     // a voiceover + per-scene visuals were written
-    expect(existsSync(join(dir, "voiceover.mp3"))).toBe(true);
+    expect(existsSync(join(dir, "voiceover.wav"))).toBe(true);
     expect(existsSync(join(dir, "scene-0.jpg"))).toBe(true);
     expect(existsSync(join(dir, "scene-1.jpg"))).toBe(true);
   });
