@@ -1,6 +1,7 @@
 export type LlmClientKind = "claude-code" | "api";
 export type VisualSource = "stock" | "ai";
 export type VideoRenderer = "ffmpeg" | "stub";
+export type VideoVisibility = "private" | "unlisted" | "public";
 
 export interface AppConfig {
   anthropicApiKey: string;
@@ -18,12 +19,21 @@ export interface AppConfig {
   elevenLabsModel: string;
   pexelsApiKey: string;
   videoRenderer: VideoRenderer;
+  // YouTube upload (empty creds -> stub uploader is used instead)
+  youtubeClientId: string;
+  youtubeClientSecret: string;
+  youtubeRefreshToken: string;
+  youtubeDefaultVisibility: VideoVisibility;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const llmClient: LlmClientKind = env.LLM_CLIENT === "api" ? "api" : "claude-code";
   const visualSource: VisualSource = env.VISUAL_SOURCE === "ai" ? "ai" : "stock";
   const videoRenderer: VideoRenderer = env.VIDEO_RENDERER === "stub" ? "stub" : "ffmpeg";
+  const youtubeDefaultVisibility: VideoVisibility =
+    env.YOUTUBE_DEFAULT_VISIBILITY === "unlisted" || env.YOUTUBE_DEFAULT_VISIBILITY === "public"
+      ? env.YOUTUBE_DEFAULT_VISIBILITY
+      : "private";
   return {
     anthropicApiKey: env.ANTHROPIC_API_KEY ?? "",
     anthropicModel: env.ANTHROPIC_MODEL ?? "claude-opus-4-7",
@@ -39,5 +49,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     elevenLabsModel: env.ELEVENLABS_MODEL ?? "eleven_multilingual_v2",
     pexelsApiKey: env.PEXELS_API_KEY ?? "",
     videoRenderer,
+    youtubeClientId: env.YOUTUBE_CLIENT_ID ?? "",
+    youtubeClientSecret: env.YOUTUBE_CLIENT_SECRET ?? "",
+    youtubeRefreshToken: env.YOUTUBE_REFRESH_TOKEN ?? "",
+    youtubeDefaultVisibility,
   };
 }

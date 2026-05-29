@@ -8,7 +8,9 @@
     "autosocial-score-topics": "dist/score-topics-cli.js",
     "autosocial-make-video": "dist/make-video-cli.js",
     "autosocial-story-arc": "dist/story-arc-cli.js",
-    "autosocial-story-render": "dist/story-render-cli.js"
+    "autosocial-story-render": "dist/story-render-cli.js",
+    "autosocial-story-publish": "dist/story-publish-cli.js",
+    "autosocial-youtube-auth": "dist/youtube-auth-cli.js"
   },
   "dependencies": {
     "@autosocial/core": "0.1.0",

@@ -16,6 +16,14 @@ describe("loadConfig", () => {
     expect(cfg.pexelsApiKey).toBe("");
     expect(cfg.elevenLabsApiKey).toBe("");
     expect(cfg.elevenLabsVoiceId).toBeTruthy();
+    expect(cfg.youtubeClientId).toBe("");
+    expect(cfg.youtubeDefaultVisibility).toBe("private");
+  });
+
+  it("parses YOUTUBE_DEFAULT_VISIBILITY, falling back to private on bad values", () => {
+    expect(loadConfig({ YOUTUBE_DEFAULT_VISIBILITY: "public" }).youtubeDefaultVisibility).toBe("public");
+    expect(loadConfig({ YOUTUBE_DEFAULT_VISIBILITY: "unlisted" }).youtubeDefaultVisibility).toBe("unlisted");
+    expect(loadConfig({ YOUTUBE_DEFAULT_VISIBILITY: "garbage" }).youtubeDefaultVisibility).toBe("private");
   });
 
   it("honors env overrides", () => {

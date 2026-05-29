@@ -6,10 +6,10 @@
 **Last updated:** 2026-05-29
 **Repo:** https://github.com/kubilaykcolak-glitch/Ai-Social-Agent (branch `master`)
 **Status:** Phase 1 skeleton + Phase 2 trend radar + monetisation core + video module
-(stub + **real providers**) + **story-mode (serialized AI fiction)** complete and green.
-Full `tsc --build` passes; **95 Vitest tests pass**. **Real video rendering verified live**
-(h264 1080×1920 mp4 with burned captions) using locally-installed ffmpeg; story-render
-verified end-to-end with stub providers.
+(stub + **real providers**) + **story-mode (serialized AI fiction)** + **real YouTube upload**
+complete and green. Full `tsc --build` passes; **107 Vitest tests pass**. **Real video
+rendering verified live** (h264 1080×1920 mp4 with burned captions) using locally-installed
+ffmpeg; story-render + story-publish (stub) verified end-to-end.
 
 **Product direction (confirmed 2026-05-29 — refocused):** the priority is **AI-generated
 serialized story videos** (e.g. an apocalypse saga) → auto-post to YouTube/TikTok/Instagram →
@@ -89,7 +89,11 @@ publish via per-platform adapters. Wired together by a pipeline orchestrator wit
 - `@autosocial/orchestrator` — `runPipeline()` (regenerate-once-on-low-score, **applies monetisation
   before review/publish** when a plan is present) + `cli`, `score-topics` (Cowork Automation 1),
   `make-video` (script → `videos/<id>/`), **`story-arc`** (generate+critique arc → part drafts +
-  advance bible) and **`story-render`** (approved part → hero 16:9 + teaser 9:16 via the video engine).
+  advance bible), **`story-render`** (approved part → hero 16:9 + teaser 9:16 via the video engine),
+  **`story-publish`** (upload hero to YouTube + log row), and **`youtube-auth`** (one-time refresh-token grab).
+- **Real YouTube upload** (in publishing): `VideoUploader` interface, `YoutubeVideoUploader` (googleapis
+  `videos.insert`, resumable, OAuth2 refresh), `StubVideoUploader`, `createVideoUploader(config)`,
+  one-time OAuth2 helpers (`buildConsentUrl`/`exchangeCodeForRefreshToken`). Uploads default to **private**.
 
 ## How to run
 
@@ -118,6 +122,15 @@ node apps/orchestrator/dist/story-arc-cli.js --series=ashfall --parts=5 --minute
 # Review the part drafts, then render an approved part -> videos/<series>/<arc>/partNN/
 # (hero 16:9+9:16 from heroScript, teaser 9:16 from teaserScript). Stub w/o keys.
 node apps/orchestrator/dist/story-render-cli.js --series=ashfall --arc=<arcId> --part=1
+
+# One-time: get a YouTube refresh token (needs YOUTUBE_CLIENT_ID/SECRET in .env).
+# Prints a consent URL; approve, then re-run with --code=<code> from the redirect.
+node apps/orchestrator/dist/youtube-auth-cli.js
+node apps/orchestrator/dist/youtube-auth-cli.js --code=<code>
+
+# Publish: upload the rendered hero (16:9) to YouTube as PRIVATE (review in Studio).
+# Stub upload (logs a row, no real post) when YOUTUBE_* creds are absent.
+node apps/orchestrator/dist/story-publish-cli.js --series=ashfall --arc=<arcId> --part=1
 ```
 
 **ffmpeg note:** installed on this machine via `winget install Gyan.FFmpeg`. It's on PATH for new
@@ -136,28 +149,29 @@ The repo provides the callable agent-side pieces; Cowork wires the folder trigge
 
 1. **Trend sources** — `StubTrendDetector` returns seeded data. Scoring (`AnthropicTrendScorer`) is real,
    but real *ingestion* (Google Trends, X API, RSS) into `inbox/topics/` is not wired.
-2. **Platform publishing** — every adapter's `publish()` has a `// TODO` for the real API call
-   (Instagram Graph, TikTok Content Posting, X API v2, YouTube Data API, CMS REST). Mock results for now.
-   No media upload yet.
+2. **Platform publishing** — **YouTube video upload is REAL** (`YoutubeVideoUploader`, behind
+   `YOUTUBE_*` creds; uploads default to private). The *text* adapters (Instagram Graph, TikTok,
+   X v2, CMS REST) still have `// TODO` mock `publish()`. TikTok/Instagram **video** upload not built.
 3. **Real video works with keys + ffmpeg** (ElevenLabs TTS, Pexels stock, ffmpeg render). Still
-   missing: **AI image generation** (`VISUAL_SOURCE=ai` is a stub), and `VideoAsset` is not yet
-   attached to `Draft` or uploaded by the publishing adapters.
+   missing: **AI image generation** (`VISUAL_SOURCE=ai` is a stub). The 9:16 teaser is rendered but
+   not yet uploaded anywhere (YouTube upload is the 16:9 hero only).
 4. No `.env` autoloading, scheduling/async loop, persistence, or web UI yet.
 
 ## Suggested next steps (pick up here)
 
 **CRITICAL PATH (confirmed 2026-05-29):** story videos → auto-post → earn from views. Story-mode
-generation is now ✅. The honest gap is **real publishing/upload**.
+generation ✅ and **real YouTube upload ✅**. End-to-end now runnable: `story-arc` → approve →
+`story-render` → `story-publish` (YouTube, private). The remaining work is setup + polish + reach.
 
-1. **Real publishing — YouTube first (TOP priority).** Wire `YoutubeAdapter.publish()` to the real
-   YouTube Data API to upload the rendered hero mp4 (16:9) + title/description/tags. YouTube is the
-   ad-revenue hero and the easiest free API. Then TikTok Content Posting + Instagram Graph for the
-   9:16 teasers. This is what turns "renders locally" into "earns from views". Attach the rendered
-   `VideoAsset` to the publish flow (today adapters take text only — they need a media path).
+1. **Prove a real upload + grow reach.** Set up `YOUTUBE_*` (Google Cloud OAuth client + the
+   `youtube-auth` flow) + `ELEVENLABS_API_KEY` + `PEXELS_API_KEY`, run a real arc end-to-end, confirm
+   the private upload in YouTube Studio. Then it's a content/reach game (hit Partner Program: 1k subs
+   + 4k watch-hours, or Shorts thresholds) — that's where the ad revenue starts.
 2. **Story-mode polish:** AI image visuals (`VISUAL_SOURCE=ai` is still a stub — matters a lot for
    apocalypse visuals where Pexels stock is thin); caption styling; optional bible-edit/approval of
    canon (today the bible advances on generation, not on human approval).
-3. **`.env` autoloading** (dotenv) so ELEVENLABS/PEXELS keys load without manual export.
+3. **`.env` autoloading** (dotenv) so all keys load without manual export.
+4. **TikTok/Reels for the 9:16 teasers** (the funnel) — once a TikTok developer app passes audit.
 
 **Deferred (designed, not on critical path):**
 - **Attribution loop (Monetisation B)** — spec at `docs/superpowers/specs/2026-05-29-attribution-loop-design.md`.

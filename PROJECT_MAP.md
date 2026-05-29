@@ -26,10 +26,10 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 
 ### packages/core/src
 - `types.ts` — `PlatformName`, `Trend`, `ContentBrief`, `PlatformContent`, `GeneratedContent`, `ReviewResult`, `ValidationResult`, `PublishResult`; FS-contract types: `RawTopic`, `ScoredTopic`, `ApprovedTopicsFile`, `Draft`, `PublishingLogRow`; story types: `StoryCharacter`, `StoryBible`, `StoryPart`, `StoryPartMeta`, `BibleUpdate`, `StoryArc`, `StoryArcRequest`, `StoryCritique`
-- `interfaces.ts` — `TrendDetector`, `TrendScorer`, `ContentGenerator`, `ContentReviewer`, `PlatformAdapter`, `Publisher`
+- `interfaces.ts` — `TrendDetector`, `TrendScorer`, `ContentGenerator`, `ContentReviewer`, `PlatformAdapter`, `Publisher`, `VideoUploader` (uploads a rendered video file; `VideoUploadMetadata` in types.ts)
 - `errors.ts` — `GenerationError`, `ReviewError`, `PublishError`
 - `logger.ts` — `Logger` interface, `consoleLogger`
-- `config.ts` — `AppConfig`, `LlmClientKind`, `loadConfig(env)` (`LLM_CLIENT`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `REVIEW_SCORE_THRESHOLD`, `TOPIC_SCORE_THRESHOLD`, `STORY_SCORE_THRESHOLD`, `STORY_MAX_REVISIONS`, `WORKSPACE_DIR`)
+- `config.ts` — `AppConfig`, `LlmClientKind`, `VideoVisibility`, `loadConfig(env)` (`LLM_CLIENT`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `REVIEW_SCORE_THRESHOLD`, `TOPIC_SCORE_THRESHOLD`, `STORY_SCORE_THRESHOLD`, `STORY_MAX_REVISIONS`, `WORKSPACE_DIR`, `YOUTUBE_CLIENT_ID/SECRET/REFRESH_TOKEN`, `YOUTUBE_DEFAULT_VISIBILITY`)
 - `anthropic-client.ts` — `AnthropicClient` interface, `SdkAnthropicClient` (metered API key; GA `messages.create` + `cache_control`)
 - `claude-code-client.ts` — `ClaudeCodeClient` (local Claude subscription via Agent SDK `query()`, no API key)
 - `llm.ts` — `createLlmClient(config)` factory (default `claude-code`, fallback `api`)
@@ -59,7 +59,11 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 - `adapters/twitter.ts` — `TwitterAdapter` (rendered body+hashtags ≤280)
 - `adapters/youtube.ts` — `YoutubeAdapter` (script body ≥50 chars)
 - `adapters/cms.ts` — `CmsAdapter` (non-empty body; ctor takes REST `endpoint`)
-- `index.ts` — re-export publisher + all adapters
+- `stub-uploader.ts` — `StubVideoUploader` implements `VideoUploader`; no-network mock upload (used when YouTube creds absent)
+- `youtube-uploader.ts` — `YoutubeVideoUploader` implements `VideoUploader`; maps metadata→insert, builds watch URL, file-exists guard, error→failed result. Injectable `YoutubeInsertFn` (real one uses googleapis)
+- `youtube-auth.ts` — one-time OAuth2 helpers: `buildConsentUrl`, `exchangeCodeForRefreshToken` (injectable http), `YOUTUBE_UPLOAD_SCOPE`
+- `video-uploader-factory.ts` — `createVideoUploader(config)`: real `YoutubeVideoUploader` (googleapis `videos.insert`, resumable, OAuth2 refresh) when `YOUTUBE_*` present, else stub
+- `index.ts` — re-export publisher + all adapters + uploaders/auth/factory
 
 ### packages/video/src
 - `types.ts` — `Scene`, `WordTiming`, `TtsResult`, `VisualResult`, `TimedScene`, `RenderSpec`, `VideoAsset`, `AspectRatio`, `VisualKind`; interfaces `TtsProvider`, `VisualProvider`, `Renderer`, `VideoGenerator`
@@ -90,12 +94,16 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 - `story-arc-cli.ts` — CLI (`autosocial-story-arc`); flags `--series --arc --parts --minutes --premise --genre`. Bible advances on generation; the approval gate is about render/publish, not canon
 - `story-render.ts` — `runStoryRender(deps)`: read an approved part → render hero (16:9 YouTube + 9:16) from `heroScript` and teaser (9:16) from `teaserScript` via the video engine → `videos/<seriesId>/<arcId>/partNN/`. Types `StoryRenderDeps`/`StoryRenderResult`
 - `story-render-cli.ts` — CLI (`autosocial-story-render`); `--part-file=` or `--series --arc --part`
+- `story-publish.ts` — `runStoryPublish(deps)`: read approved part → upload hero (16:9) via `VideoUploader` (metadata from `platformMeta`, hashtags→bare tags) → append publishing-log row. Types `StoryPublishDeps`
+- `story-publish-cli.ts` — CLI (`autosocial-story-publish`); locates part + hero `asset.json`, builds uploader via `createVideoUploader`, `--visibility` override (default `config.youtubeDefaultVisibility`)
+- `youtube-auth-cli.ts` — CLI (`autosocial-youtube-auth`); prints consent URL, then `--code=<x>` → prints `YOUTUBE_REFRESH_TOKEN`
 
 ## Where to make common changes
 
 - **Add a real trend source** → new class implementing `TrendDetector` in `packages/trend-detection/src`, inject in `cli.ts`.
 - **Add/modify a platform** → new/edit adapter in `packages/publishing/src/adapters`, register in `DefaultPublisher` constructor + `index.ts`.
-- **Wire a real platform API** → replace the `// TODO` stub in that adapter's `publish()`.
+- **Wire a real platform API (text post)** → replace the `// TODO` stub in that adapter's `publish()`.
+- **Add a real video-upload platform** → new class implementing `VideoUploader` in `packages/publishing/src`, register in `createVideoUploader`. (YouTube done; TikTok/Instagram pending.)
 - **Change a shared shape** → `packages/core/src/types.ts` (propagates everywhere).
 - **Tune prompts** → `SYSTEM` const in `generator.ts` / `reviewer.ts`; story-craft prompts in `packages/story/src/arc-generator.ts` / `critic.ts`.
 - **Tune story quality bar** → `STORY_SCORE_THRESHOLD` / `STORY_MAX_REVISIONS` in `config.ts`; rubric in `critic.ts`.
@@ -103,4 +111,5 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 
 ## Stubs / TODO call sites (real integrations not yet wired)
 - `packages/trend-detection/src/stub-detector.ts` — seeded data, no live source
-- `packages/publishing/src/adapters/*.ts` — each `publish()` has a `// TODO` for the real API call
+- `packages/publishing/src/adapters/*.ts` — each text `publish()` has a `// TODO` for the real API call
+- **YouTube video upload is REAL** (`YoutubeVideoUploader` + `createVideoUploader`, behind `YOUTUBE_*` creds). TikTok/Instagram video upload not yet implemented (deferred)

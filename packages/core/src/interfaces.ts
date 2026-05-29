@@ -8,6 +8,7 @@ import type {
   PlatformName,
   RawTopic,
   ScoredTopic,
+  VideoUploadMetadata,
 } from "./types.js";
 
 export interface TrendDetector {
@@ -39,4 +40,11 @@ export interface Publisher {
     content: GeneratedContent,
     platforms: PlatformName[],
   ): Promise<PublishResult[]>;
+}
+
+// Uploads a rendered video file to a platform (distinct from the caption-oriented
+// PlatformAdapter). Returns a PublishResult (status "published" = uploaded ok).
+export interface VideoUploader {
+  readonly platform: PlatformName;
+  upload(videoPath: string, meta: VideoUploadMetadata): Promise<PublishResult>;
 }

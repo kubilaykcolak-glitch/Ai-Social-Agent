@@ -4,3 +4,7 @@ export * from "./adapters/tiktok.js";
 export * from "./adapters/twitter.js";
 export * from "./adapters/youtube.js";
 export * from "./adapters/cms.js";
+export * from "./stub-uploader.js";
+export * from "./youtube-uploader.js";
+export * from "./youtube-auth.js";
+export * from "./video-uploader-factory.js";

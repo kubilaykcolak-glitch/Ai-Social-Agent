@@ -50,6 +50,14 @@ export interface PublishResult {
   error?: string;
 }
 
+// Metadata for uploading a rendered video file to a platform.
+export interface VideoUploadMetadata {
+  title: string;
+  description: string;
+  tags: string[];
+  visibility: "private" | "unlisted" | "public";
+}
+
 // --- Trend radar / filesystem contract ---
 
 // A raw topic candidate as it lands in inbox/topics/*.json (pre-scoring).
