@@ -3,6 +3,7 @@ export * from "./scenes.js";
 export * from "./stub-providers.js";
 export * from "./elevenlabs-tts.js";
 export * from "./pexels-visual.js";
+export * from "./higgsfield-visual.js";
 export * from "./ffmpeg-renderer.js";
 export * from "./generator.js";
 export * from "./factory.js";

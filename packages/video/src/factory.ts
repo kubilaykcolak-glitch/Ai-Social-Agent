@@ -2,6 +2,7 @@ import { DefaultVideoGenerator } from "./generator.js";
 import { StubTtsProvider, StubVisualProvider, StubRenderer } from "./stub-providers.js";
 import { ElevenLabsTtsProvider } from "./elevenlabs-tts.js";
 import { PexelsVisualProvider } from "./pexels-visual.js";
+import { HiggsfieldVisualProvider } from "./higgsfield-visual.js";
 import { FfmpegRenderer } from "./ffmpeg-renderer.js";
 import type {
   Renderer,
@@ -24,6 +25,9 @@ export interface VideoGeneratorConfig {
   visualSource: "stock" | "ai";
   videoRenderer: "ffmpeg" | "stub";
   pexelsApiKey?: string;
+  higgsfieldApiKey?: string;
+  higgsfieldImageModel?: string;
+  higgsfieldStyle?: string;
   elevenLabsApiKey?: string;
   elevenLabsVoiceId?: string;
   elevenLabsModel?: string;
@@ -32,8 +36,8 @@ export interface VideoGeneratorConfig {
 
 // Pick real providers where credentials/tools are available, else fall back to
 // stubs. Each provider is independent, so partial setups work (e.g. real TTS +
-// stub visuals). Real AI image generation isn't implemented yet — "ai" falls
-// back to a stub visual provider.
+// stub visuals). "ai" uses Higgsfield when a key is present; "stock" uses Pexels;
+// otherwise a stub visual provider.
 export function createVideoGenerator(cfg: VideoGeneratorConfig): VideoGenerator {
   const tts: TtsProvider = cfg.elevenLabsApiKey
     ? new ElevenLabsTtsProvider({
@@ -44,7 +48,13 @@ export function createVideoGenerator(cfg: VideoGeneratorConfig): VideoGenerator 
     : new StubTtsProvider();
 
   let visual: VisualProvider;
-  if (cfg.visualSource === "stock" && cfg.pexelsApiKey) {
+  if (cfg.visualSource === "ai" && cfg.higgsfieldApiKey) {
+    visual = new HiggsfieldVisualProvider({
+      apiKey: cfg.higgsfieldApiKey,
+      model: cfg.higgsfieldImageModel,
+      style: cfg.higgsfieldStyle,
+    });
+  } else if (cfg.visualSource === "stock" && cfg.pexelsApiKey) {
     visual = new PexelsVisualProvider({ apiKey: cfg.pexelsApiKey });
   } else {
     visual = new StubVisualProvider(cfg.visualSource);

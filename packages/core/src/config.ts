@@ -18,6 +18,10 @@ export interface AppConfig {
   elevenLabsVoiceId: string;
   elevenLabsModel: string;
   pexelsApiKey: string;
+  // AI image generation (VISUAL_SOURCE=ai). Empty key -> stub visual is used instead.
+  higgsfieldApiKey: string;
+  higgsfieldImageModel: string;
+  higgsfieldStyle: string;
   videoRenderer: VideoRenderer;
   // YouTube upload (empty creds -> stub uploader is used instead)
   youtubeClientId: string;
@@ -48,6 +52,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     elevenLabsVoiceId: env.ELEVENLABS_VOICE_ID ?? "21m00Tcm4TlvDq8ikWAM",
     elevenLabsModel: env.ELEVENLABS_MODEL ?? "eleven_multilingual_v2",
     pexelsApiKey: env.PEXELS_API_KEY ?? "",
+    higgsfieldApiKey: env.HIGGSFIELD_API_KEY ?? "",
+    higgsfieldImageModel: env.HIGGSFIELD_IMAGE_MODEL ?? "flux",
+    higgsfieldStyle:
+      env.HIGGSFIELD_STYLE ??
+      "cinematic still, photorealistic, dark atmospheric, moody volumetric lighting, 35mm film grain",
     videoRenderer,
     youtubeClientId: env.YOUTUBE_CLIENT_ID ?? "",
     youtubeClientSecret: env.YOUTUBE_CLIENT_SECRET ?? "",

@@ -152,9 +152,10 @@ The repo provides the callable agent-side pieces; Cowork wires the folder trigge
 2. **Platform publishing** — **YouTube video upload is REAL** (`YoutubeVideoUploader`, behind
    `YOUTUBE_*` creds; uploads default to private). The *text* adapters (Instagram Graph, TikTok,
    X v2, CMS REST) still have `// TODO` mock `publish()`. TikTok/Instagram **video** upload not built.
-3. **Real video works with keys + ffmpeg** (ElevenLabs TTS, Pexels stock, ffmpeg render). Still
-   missing: **AI image generation** (`VISUAL_SOURCE=ai` is a stub). The 9:16 teaser is rendered but
-   not yet uploaded anywhere (YouTube upload is the 16:9 hero only).
+3. **Real video works with keys + ffmpeg** (ElevenLabs TTS, Pexels stock, ffmpeg render). **AI image
+   generation is now REAL too** (`VISUAL_SOURCE=ai` + `HIGGSFIELD_API_KEY` → `HiggsfieldVisualProvider`,
+   FLUX via Higgsfield Cloud). The 9:16 teaser is rendered but not yet uploaded anywhere (YouTube
+   upload is the 16:9 hero only). **AI video clips** (Higgsfield image-to-video) are the next visual phase.
 4. No `.env` autoloading, scheduling/async loop, persistence, or web UI yet.
 
 ## Suggested next steps (pick up here)
@@ -167,9 +168,10 @@ generation ✅ and **real YouTube upload ✅**. End-to-end now runnable: `story-
    `youtube-auth` flow) + `ELEVENLABS_API_KEY` + `PEXELS_API_KEY`, run a real arc end-to-end, confirm
    the private upload in YouTube Studio. Then it's a content/reach game (hit Partner Program: 1k subs
    + 4k watch-hours, or Shorts thresholds) — that's where the ad revenue starts.
-2. **Story-mode polish:** AI image visuals (`VISUAL_SOURCE=ai` is still a stub — matters a lot for
-   apocalypse visuals where Pexels stock is thin); caption styling; optional bible-edit/approval of
-   canon (today the bible advances on generation, not on human approval).
+2. **Story-mode polish:** AI image visuals are now wired (Higgsfield/FLUX, `VISUAL_SOURCE=ai`) — tune
+   `HIGGSFIELD_STYLE` for the channel look; next visual lever is **AI video clips** (Higgsfield
+   image-to-video, needs a clip-based renderer path). Also: caption styling; optional bible-edit/
+   approval of canon (today the bible advances on generation, not on human approval).
 3. **TikTok/Reels for the 9:16 teasers** (the funnel) — once a TikTok developer app passes audit.
 
 **`.env` autoloading is DONE** — all CLIs import `load-env.ts` (dotenv) first, so a root `.env`
@@ -178,7 +180,7 @@ loads automatically (no manual `$env:` exports). `.env` is git-ignored.
 **Deferred (designed, not on critical path):**
 - **Attribution loop (Monetisation B)** — spec at `docs/superpowers/specs/2026-05-29-attribution-loop-design.md`.
   Serves sponsor/affiliate-link tracking, not view-based ad revenue. Revisit once sponsorships matter.
-- **C — Revenue-weighted scoring**, **Phase 3 async polling loop**, **AI image gen**, **real trend ingestion**.
+- **C — Revenue-weighted scoring**, **Phase 3 async polling loop**, **AI video clips** (Higgsfield image-to-video), **real trend ingestion**.
 - **X/Twitter:** kept free/organic; no paid Basic API. Expand later if engagement justifies it.
 - Add `.env` autoloading (e.g. `dotenv`) — `loadConfig` reads `process.env` but nothing loads `.env`.
 

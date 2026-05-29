@@ -36,15 +36,25 @@ async function main() {
     visualSource: cfg.visualSource,
     videoRenderer: cfg.videoRenderer,
     pexelsApiKey: cfg.pexelsApiKey,
+    higgsfieldApiKey: cfg.higgsfieldApiKey,
+    higgsfieldImageModel: cfg.higgsfieldImageModel,
+    higgsfieldStyle: cfg.higgsfieldStyle,
     elevenLabsApiKey: cfg.elevenLabsApiKey,
     elevenLabsVoiceId: cfg.elevenLabsVoiceId,
     elevenLabsModel: cfg.elevenLabsModel,
   });
 
+  const visuals =
+    cfg.visualSource === "ai" && cfg.higgsfieldApiKey
+      ? "higgsfield (ai)"
+      : cfg.visualSource === "stock" && cfg.pexelsApiKey
+        ? "pexels (stock)"
+        : "stub";
   consoleLogger.info("rendering story part", {
     partFile,
     renderer: cfg.videoRenderer,
     tts: cfg.elevenLabsApiKey ? "elevenlabs" : "stub",
+    visuals,
   });
 
   const result = await runStoryRender({
