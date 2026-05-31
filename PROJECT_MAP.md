@@ -17,17 +17,17 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 | `@autosocial/trend-detection` | `packages/trend-detection` | Detect trends (stub impl) |
 | `@autosocial/content-generation` | `packages/content-generation` | Generate platform content via Anthropic |
 | `@autosocial/review` | `packages/review` | AI self-critique review/scoring |
-| `@autosocial/publishing` | `packages/publishing` | Publisher + 6 platform adapters |
-| `@autosocial/video` | `packages/video` | Faceless video pipeline (stub-first) |
+| `@autosocial/publishing` | `packages/publishing` | Publisher + 5 platform adapters + real YouTube video uploader |
+| `@autosocial/video` | `packages/video` | Faceless video pipeline (stub + real TTS/stock/AI-image/ffmpeg) |
 | `@autosocial/story` | `packages/story` | Serialized AI story-mode (arc generation + self-critique loop + saga bible) |
-| `@autosocial/orchestrator` | `apps/orchestrator` | Pipeline + CLIs (content, score-topics, make-video, story-arc, story-render) |
+| `@autosocial/orchestrator` | `apps/orchestrator` | Pipeline + CLIs (content, score-topics, make-video, story-arc, story-render, story-publish, youtube-auth) |
 
 ## File index
 
 ### packages/core/src
-- `types.ts` — `PlatformName`, `Trend`, `ContentBrief`, `PlatformContent`, `GeneratedContent`, `ReviewResult`, `ValidationResult`, `PublishResult`; FS-contract types: `RawTopic`, `ScoredTopic`, `ApprovedTopicsFile`, `Draft`, `PublishingLogRow`; story types: `StoryCharacter`, `StoryBible`, `StoryPart`, `StoryPartMeta`, `BibleUpdate`, `StoryArc`, `StoryArcRequest`, `StoryCritique`
+- `types.ts` — `PlatformName`, `Trend`, `ContentBrief`, `PlatformContent`, `GeneratedContent`, `ReviewResult`, `ValidationResult`, `PublishResult`; FS-contract types: `RawTopic`, `ScoredTopic`, `ApprovedTopicsFile`, `Draft`, `PublishingLogRow`, `VideoUploadMetadata`; story types: `StoryCharacter`, `StoryBible`, `StoryPart`, `StoryPartMeta`, `BibleUpdate`, `StoryArc`, `StoryArcRequest`, `StoryCritique`
 - `interfaces.ts` — `TrendDetector`, `TrendScorer`, `ContentGenerator`, `ContentReviewer`, `PlatformAdapter`, `Publisher`, `VideoUploader` (uploads a rendered video file; `VideoUploadMetadata` in types.ts)
-- `errors.ts` — `GenerationError`, `ReviewError`, `PublishError`
+- `errors.ts` — `GenerationError`, `ReviewError`, `PublishError`, `StoryError`
 - `logger.ts` — `Logger` interface, `consoleLogger`
 - `config.ts` — `AppConfig`, `LlmClientKind`, `VideoVisibility`, `loadConfig(env)` (`LLM_CLIENT`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `REVIEW_SCORE_THRESHOLD`, `TOPIC_SCORE_THRESHOLD`, `STORY_SCORE_THRESHOLD`, `STORY_MAX_REVISIONS`, `WORKSPACE_DIR`, `HIGGSFIELD_API_KEY/API_SECRET/IMAGE_MODEL/ASPECT/STYLE`, `YOUTUBE_CLIENT_ID/SECRET/REFRESH_TOKEN`, `YOUTUBE_DEFAULT_VISIBILITY`)
 - `anthropic-client.ts` — `AnthropicClient` interface, `SdkAnthropicClient` (metered API key; GA `messages.create` + `cache_control`)
@@ -86,12 +86,13 @@ Independent library packages depend only on interfaces in `@autosocial/core`. Th
 - `index.ts` — re-export
 
 ### apps/orchestrator/src
+- `load-env.ts` — side-effect `import "dotenv/config"`; imported first by every CLI so a root `.env` auto-loads into `process.env`
 - `pipeline.ts` — `runPipeline(cfg)`, types `PipelineConfig` / `PipelineOutput`; sequences detect→generate→(monetise)→review→publish with regenerate-once-on-low-score. `cfg.monetization?` applies CTAs before review/publish
 - `cli.ts` — content-pipeline CLI entrypoint; `parsePlatforms(argv)`, builds real deps, runs pipeline, prints results
 - `score-topics.ts` — `runTopicScoring(deps)`: inbox → scorer → `writeApprovedTopics`; types `TopicScoringDeps`/`TopicScoringSummary`
 - `score-topics-cli.ts` — CLI for Cowork Automation 1 (`autosocial-score-topics`); wires config/llm/workspace/scorer
 - `make-video.ts` — `runVideoGeneration(deps)`: script → `videos/<scriptId>/` + asset.json
-- `make-video-cli.ts` — CLI (`autosocial-make-video`); builds stub generator from `config.visualSource`
+- `make-video-cli.ts` — CLI (`autosocial-make-video`); builds the generator via `createVideoGenerator` (real-vs-stub per keys), injects the LLM `describeScene` when `VISUAL_SOURCE=ai`
 - `story-arc.ts` — `runStoryArc(deps)`: load/seed bible → `generateArc` (critique+revise) → write part drafts to `story/<seriesId>/arcs/<arcId>/partNN.json` → advance+persist bible. Types `StoryArcDeps`/`StoryArcSummary`
 - `story-arc-cli.ts` — CLI (`autosocial-story-arc`); flags `--series --arc --parts --minutes --premise --genre`. Bible advances on generation; the approval gate is about render/publish, not canon
 - `scene-describer.ts` — `createSceneDescriber(client)`: LLM rewrites a `Scene`'s narration into a concise visual image-prompt (for AI visuals). Type `SceneDescriber`
