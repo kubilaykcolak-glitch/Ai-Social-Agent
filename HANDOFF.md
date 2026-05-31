@@ -7,9 +7,10 @@
 **Repo:** https://github.com/kubilaykcolak-glitch/Ai-Social-Agent (branch `master`)
 **Status:** Phase 1 skeleton + Phase 2 trend radar + monetisation core + video module
 (stub + **real providers**) + **story-mode (serialized AI fiction)** + **real YouTube upload**
-complete and green. Full `tsc --build` passes; **107 Vitest tests pass**. **Real video
-rendering verified live** (h264 1080×1920 mp4 with burned captions) using locally-installed
-ffmpeg; story-render + story-publish (stub) verified end-to-end.
++ **real AI image visuals (Higgsfield)** complete and green. Full `tsc --build` passes;
+**116 Vitest tests pass**. **Real video rendering verified live** (h264 1080×1920 mp4 with
+burned captions) using locally-installed ffmpeg; story-render + story-publish (stub) verified
+end-to-end; Higgsfield AI-image auth/endpoint live-verified (account just needs credits).
 
 **Product direction (confirmed 2026-05-29 — refocused):** the priority is **AI-generated
 serialized story videos** (e.g. an apocalypse saga) → auto-post to YouTube/TikTok/Instagram →
@@ -33,8 +34,12 @@ per-video cost is ElevenLabs voiceover (~$1/part: long episode + teaser).
 **Video providers (real, wired):**
 - **TTS:** `ElevenLabsTtsProvider` (`/v1/text-to-speech/{voice}/with-timestamps`) → audio + word
   timings for captions. Needs `ELEVENLABS_API_KEY` (+ `ELEVENLABS_VOICE_ID`).
-- **Visuals:** `PexelsVisualProvider` (stock images). Needs `PEXELS_API_KEY`. **AI image gen is
-  still a stub** (`VISUAL_SOURCE=ai` falls back to placeholder) — not yet implemented.
+- **Visuals:** `PexelsVisualProvider` (stock, `VISUAL_SOURCE=stock` + `PEXELS_API_KEY`) **and
+  `HiggsfieldVisualProvider`** (real **AI images**, `VISUAL_SOURCE=ai` + `HIGGSFIELD_API_KEY`
+  +`HIGGSFIELD_API_SECRET`, FLUX via the official `@higgsfield/client` v2 SDK). AI prompts =
+  a reusable template (`prompt-templates.ts`, tune via `HIGGSFIELD_STYLE`) filled with an
+  LLM-written per-scene visual description (orchestrator `scene-describer.ts`). See
+  `docs/prompting-templates.md`.
 - **Renderer:** `FfmpegRenderer` (local ffmpeg; scale/crop per aspect, burned SRT captions,
   `fps=30` so stills hold their full duration). Needs ffmpeg installed.
 - Selection: `createVideoGenerator(config)` picks real per available key, else stub.
@@ -86,6 +91,11 @@ publish via per-platform adapters. Wired together by a pipeline orchestrator wit
 - `@autosocial/story` — serialized AI fiction: `StoryArcGenerator` (whole-arc generation, sliced
   into cliffhanger parts), `StoryCritic` (rubric scoring), `generateArc` (self-critique + revision
   loop, returns best attempt), `updateBible` (saga continuity). Pure logic, mock-client tested.
+  **Prompts tuned for gripping, human, zombie/apocalypse-craft narration written to be heard
+  aloud** (in-media-res hooks, sensory specifics, hard cliffhangers; critic penalises "AI tells").
+- `@autosocial/video` AI-image additions: `HiggsfieldVisualProvider`, `prompt-templates.ts`
+  (`PROMPT_TEMPLATES` presets + `buildImagePrompt`). Orchestrator `scene-describer.ts`
+  (`createSceneDescriber`) LLM-rewrites narration → visual prompts; CLIs inject it when `VISUAL_SOURCE=ai`.
 - `@autosocial/orchestrator` — `runPipeline()` (regenerate-once-on-low-score, **applies monetisation
   before review/publish** when a plan is present) + `cli`, `score-topics` (Cowork Automation 1),
   `make-video` (script → `videos/<id>/`), **`story-arc`** (generate+critique arc → part drafts +
@@ -100,7 +110,7 @@ publish via per-platform adapters. Wired together by a pipeline orchestrator wit
 ```bash
 npm install
 npm run build          # tsc --build across all packages
-npm test               # 95 tests, all green
+npm test               # 116 tests, all green
 cp .env.example .env   # default LLM_CLIENT=claude-code needs NO key (uses your local Claude login)
 
 # Score topics (Cowork Automation 1): reads $WORKSPACE_DIR/inbox/topics/*.json -> queue/approved-topics.json
@@ -158,7 +168,7 @@ The repo provides the callable agent-side pieces; Cowork wires the folder trigge
    auth + endpoint confirmed working — only blocker is the Higgsfield account needs credits to generate.
    The 9:16 teaser is rendered but not yet uploaded (YouTube upload is the 16:9 hero only).
    **AI video clips** (Higgsfield image-to-video) are the next visual phase.
-4. No `.env` autoloading, scheduling/async loop, persistence, or web UI yet.
+4. No scheduling/async loop, persistence, or web UI yet. (`.env` autoloading IS done.)
 
 ## Suggested next steps (pick up here)
 
@@ -167,11 +177,14 @@ generation ✅ and **real YouTube upload ✅**. End-to-end now runnable: `story-
 `story-render` → `story-publish` (YouTube, private). The remaining work is setup + polish + reach.
 
 1. **Prove a real upload + grow reach.** Set up `YOUTUBE_*` (Google Cloud OAuth client + the
-   `youtube-auth` flow) + `ELEVENLABS_API_KEY` + `PEXELS_API_KEY`, run a real arc end-to-end, confirm
-   the private upload in YouTube Studio. Then it's a content/reach game (hit Partner Program: 1k subs
-   + 4k watch-hours, or Shorts thresholds) — that's where the ad revenue starts.
-2. **Story-mode polish:** AI image visuals are now wired (Higgsfield/FLUX, `VISUAL_SOURCE=ai`) — tune
-   `HIGGSFIELD_STYLE` for the channel look; next visual lever is **AI video clips** (Higgsfield
+   `youtube-auth` flow), `ELEVENLABS_API_KEY`, `PEXELS_API_KEY`, and (for AI visuals)
+   `HIGGSFIELD_API_KEY`+`HIGGSFIELD_API_SECRET` **plus account credits**; run a real arc end-to-end,
+   confirm the private upload in YouTube Studio. Then it's a content/reach game (hit Partner Program:
+   1k subs + 4k watch-hours, or Shorts thresholds) — that's where the ad revenue starts.
+2. **Story-mode polish:** AI image visuals are wired (Higgsfield/FLUX, `VISUAL_SOURCE=ai`) and
+   live-verified — **only blocker is Higgsfield account credits**. Tune `HIGGSFIELD_STYLE` /
+   `prompt-templates.ts` for the look; consider feeding the story bible's world-rules into the
+   scene-describer for setting consistency. Next visual lever is **AI video clips** (Higgsfield
    image-to-video, needs a clip-based renderer path). Also: caption styling; optional bible-edit/
    approval of canon (today the bible advances on generation, not on human approval).
 3. **TikTok/Reels for the 9:16 teasers** (the funnel) — once a TikTok developer app passes audit.
@@ -184,7 +197,6 @@ loads automatically (no manual `$env:` exports). `.env` is git-ignored.
   Serves sponsor/affiliate-link tracking, not view-based ad revenue. Revisit once sponsorships matter.
 - **C — Revenue-weighted scoring**, **Phase 3 async polling loop**, **AI video clips** (Higgsfield image-to-video), **real trend ingestion**.
 - **X/Twitter:** kept free/organic; no paid Basic API. Expand later if engagement justifies it.
-- Add `.env` autoloading (e.g. `dotenv`) — `loadConfig` reads `process.env` but nothing loads `.env`.
 
 ## Conventions to keep
 
