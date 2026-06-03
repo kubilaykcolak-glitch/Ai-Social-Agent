@@ -1,7 +1,7 @@
 import { DefaultVideoGenerator } from "./generator.js";
 import { StubTtsProvider, StubVisualProvider, StubRenderer } from "./stub-providers.js";
 import { ElevenLabsTtsProvider } from "./elevenlabs-tts.js";
-import { PexelsVisualProvider } from "./pexels-visual.js";
+import { PexelsVisualProvider, type StockQueryDescriber } from "./pexels-visual.js";
 import { HiggsfieldVisualProvider, type SceneDescriber } from "./higgsfield-visual.js";
 import { FfmpegRenderer } from "./ffmpeg-renderer.js";
 import type {
@@ -30,7 +30,8 @@ export interface VideoGeneratorConfig {
   higgsfieldImageModel?: string;
   higgsfieldAspect?: string;
   higgsfieldStyle?: string; // image-prompt template (with optional {SCENE} slot)
-  describeScene?: SceneDescriber; // optional LLM scene->visual-prompt rewriter
+  describeScene?: SceneDescriber; // optional LLM scene->visual-prompt rewriter (AI images)
+  describeStockQuery?: StockQueryDescriber; // optional LLM scene->stock-search query (Pexels)
   elevenLabsApiKey?: string;
   elevenLabsVoiceId?: string;
   elevenLabsModel?: string;
@@ -60,7 +61,10 @@ export function createVideoGenerator(cfg: VideoGeneratorConfig): VideoGenerator 
       describeScene: cfg.describeScene,
     });
   } else if (cfg.visualSource === "stock" && cfg.pexelsApiKey) {
-    visual = new PexelsVisualProvider({ apiKey: cfg.pexelsApiKey });
+    visual = new PexelsVisualProvider({
+      apiKey: cfg.pexelsApiKey,
+      describeStockQuery: cfg.describeStockQuery,
+    });
   } else {
     visual = new StubVisualProvider(cfg.visualSource);
   }

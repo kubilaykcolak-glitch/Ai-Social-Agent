@@ -48,9 +48,27 @@ export function charsToWords(
 const defaultHttpPostJson: HttpPostJson = async (url, headers, body) => {
   const f = (globalThis as { fetch: (input: string, init?: unknown) => Promise<any> }).fetch;
   const res = await f(url, { method: "POST", headers, body: JSON.stringify(body) });
-  if (!res.ok) throw new Error(`ElevenLabs ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    const text = await res.text();
+    const err = new Error(`ElevenLabs ${res.status}: ${text}`) as Error & {
+      status?: number;
+      body?: string;
+    };
+    err.status = res.status;
+    err.body = text;
+    throw err;
+  }
   return res.json();
 };
+
+// Known-good premade voices that are usable on the ElevenLabs free tier. Order = preference.
+// Used by the auto-fallback when the configured voice triggers paid_plan_required.
+const FREE_PREMADE_FALLBACK_VOICES: ReadonlyArray<{ id: string; name: string }> = [
+  { id: "JBFqnCBsd6RMkjVDRZzb", name: "George" },
+  { id: "nPczCjzI2devNBz1zQrb", name: "Brian" },
+  { id: "pNInz6obpgDQGcFmaJgB", name: "Adam" },
+  { id: "pqHfZKP75CvOlQylNhV4", name: "Bill" },
+];
 
 export interface ElevenLabsTtsOptions {
   apiKey: string;
@@ -58,6 +76,9 @@ export interface ElevenLabsTtsOptions {
   model?: string;
   baseUrl?: string;
   http?: HttpPostJson;
+  // When the configured voice is rejected as paid-only, try this list before giving up.
+  // Defaults to a curated list of premade voices that work on the free tier.
+  freeFallbackVoiceIds?: ReadonlyArray<string>;
 }
 
 export class ElevenLabsTtsProvider implements TtsProvider {
@@ -73,12 +94,33 @@ export class ElevenLabsTtsProvider implements TtsProvider {
 
   async synthesize(text: string, outDir: string): Promise<TtsResult> {
     await mkdir(outDir, { recursive: true });
-    const url = `${this.baseUrl}/v1/text-to-speech/${this.opts.voiceId}/with-timestamps`;
-    const res = (await this.http(
-      url,
-      { "xi-api-key": this.opts.apiKey, "Content-Type": "application/json" },
-      { text, model_id: this.model },
-    )) as WithTimestampsResponse;
+    const candidateVoices = [
+      this.opts.voiceId,
+      ...(this.opts.freeFallbackVoiceIds ?? FREE_PREMADE_FALLBACK_VOICES.map((v) => v.id)),
+    ];
+    let res: WithTimestampsResponse | null = null;
+    let lastErr: unknown;
+    for (let i = 0; i < candidateVoices.length; i++) {
+      const voice = candidateVoices[i];
+      const url = `${this.baseUrl}/v1/text-to-speech/${voice}/with-timestamps`;
+      try {
+        res = (await this.http(
+          url,
+          { "xi-api-key": this.opts.apiKey, "Content-Type": "application/json" },
+          { text, model_id: this.model },
+        )) as WithTimestampsResponse;
+        break;
+      } catch (err) {
+        lastErr = err;
+        const e = err as { status?: number; body?: string };
+        // Only fall through to the next voice for paid-plan rejections; other errors
+        // (network, auth, quota) should surface immediately.
+        const isPaidRejection =
+          e?.status === 402 || (typeof e?.body === "string" && /paid_plan_required/.test(e.body));
+        if (!isPaidRejection || i === candidateVoices.length - 1) throw err;
+      }
+    }
+    if (!res) throw lastErr ?? new Error("ElevenLabs: no voice produced audio");
 
     const audioPath = join(outDir, "voiceover.mp3");
     await writeFile(audioPath, Buffer.from(res.audio_base64, "base64"));

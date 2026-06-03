@@ -68,10 +68,12 @@ describe("buildFfmpegArgs", () => {
     expect(args).toContain("concat");
     expect(args).toContain("out.mp4");
     const vf = args[args.indexOf("-vf") + 1];
-    expect(vf).toContain("fps=30");
     expect(vf).toContain("scale=1080:1920");
     expect(vf).toContain("crop=1080:1920");
     expect(vf).toContain("subtitles='C\\:/tmp/caps.srt'");
+    // CFR output forces stills to be repeated for their full PTS duration.
+    expect(args[args.indexOf("-r") + 1]).toBe("30");
+    expect(args[args.indexOf("-fps_mode") + 1]).toBe("cfr");
   });
 });
 
@@ -103,9 +105,12 @@ describe("FfmpegRenderer.render", () => {
 
     expect(result).toBe(outPath);
     expect(existsSync(`${outPath}.concat.txt`)).toBe(true);
-    expect(existsSync(`${outPath}.srt`)).toBe(true);
+    // SRT is renamed to .captions.txt after the run so VLC/YouTube don't auto-load
+    // it on top of the burned-in captions.
+    expect(existsSync(`${outPath}.srt`)).toBe(false);
+    expect(existsSync(`${outPath}.captions.txt`)).toBe(true);
     expect(ranArgs).toContain(outPath);
-    const srt = await readFile(`${outPath}.srt`, "utf8");
+    const srt = await readFile(`${outPath}.captions.txt`, "utf8");
     expect(srt).toContain("AI tools are booming");
   });
 });

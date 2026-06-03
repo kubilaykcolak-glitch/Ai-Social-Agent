@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { loadConfig, createLlmClient, resolveWorkspace, consoleLogger } from "@autosocial/core";
 import { createVideoGenerator } from "@autosocial/video";
 import { createSceneDescriber } from "./scene-describer.js";
+import { createStockQueryDescriber } from "./stock-query-describer.js";
 import { runStoryRender } from "./story-render.js";
 
 function argValue(argv: string[], name: string): string | undefined {
@@ -34,8 +35,13 @@ async function main() {
   }
 
   // For AI visuals, rewrite each scene's narration into a tight visual prompt via the LLM.
+  // For Pexels stock, rewrite each scene into a stock-search query so visuals match the
+  // beat (raw narration keywords return off-topic stock photos otherwise).
   const useAi = cfg.visualSource === "ai" && Boolean(cfg.higgsfieldApiKey && cfg.higgsfieldApiSecret);
-  const describeScene = useAi ? createSceneDescriber(createLlmClient(cfg)) : undefined;
+  const useStock = cfg.visualSource === "stock" && Boolean(cfg.pexelsApiKey);
+  const llm = useAi || useStock ? createLlmClient(cfg) : undefined;
+  const describeScene = useAi && llm ? createSceneDescriber(llm) : undefined;
+  const describeStockQuery = useStock && llm ? createStockQueryDescriber(llm) : undefined;
 
   const generator = createVideoGenerator({
     visualSource: cfg.visualSource,
@@ -47,6 +53,7 @@ async function main() {
     higgsfieldAspect: cfg.higgsfieldAspect,
     higgsfieldStyle: cfg.higgsfieldStyle,
     describeScene,
+    describeStockQuery,
     elevenLabsApiKey: cfg.elevenLabsApiKey,
     elevenLabsVoiceId: cfg.elevenLabsVoiceId,
     elevenLabsModel: cfg.elevenLabsModel,

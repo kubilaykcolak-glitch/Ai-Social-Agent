@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { writeFile, rename } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import type { AspectRatio, Renderer, RenderSpec, TimedScene, WordTiming } from "./types.js";
 
@@ -63,11 +63,14 @@ export interface FfmpegArgsInput {
 
 export function buildFfmpegArgs(input: FfmpegArgsInput): string[] {
   const { w, h } = dimsFor(input.aspect);
-  // fps=30 forces still images to be held for their full concat duration;
-  // without it the concat demuxer emits one frame per image and the video
-  // collapses to a fraction of a second.
+  // The concat demuxer of still images emits one packet per image with PTS spanning
+  // its declared duration. `fps=30` on its own does NOT duplicate the still frame
+  // forward to fill the gap (filter sees only one input frame). To produce a clean
+  // constant-30fps stream we explicitly request CFR output and force a 30fps timebase
+  // on the output side, which makes ffmpeg repeat each still frame across its full
+  // PTS span. Without this the video stream finishes far before the audio and the
+  // last scenes are missing.
   const vf =
-    `fps=30,` +
     `scale=${w}:${h}:force_original_aspect_ratio=increase,` +
     `crop=${w}:${h},` +
     `subtitles='${escapeSubtitlesPath(input.srtPath)}'`;
@@ -83,6 +86,10 @@ export function buildFfmpegArgs(input: FfmpegArgsInput): string[] {
     input.audioPath,
     "-vf",
     vf,
+    "-r",
+    "30",
+    "-fps_mode",
+    "cfr",
     "-c:v",
     "libx264",
     "-pix_fmt",
@@ -130,6 +137,14 @@ export class FfmpegRenderer implements Renderer {
       outPath: spec.outPath,
     });
     await this.run(args);
+    // Captions are burned into the mp4 already. The sidecar .srt is kept for debugging
+    // and upload, but rename it so VLC / YouTube Studio / browsers don't auto-load it
+    // and double-render captions on top of the burned-in ones.
+    try {
+      await rename(srtPath, `${spec.outPath}.captions.txt`);
+    } catch {
+      // best-effort; not fatal if rename fails on this platform
+    }
     return spec.outPath;
   }
 }
